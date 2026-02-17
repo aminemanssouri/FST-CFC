@@ -1,0 +1,67 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: notif_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - notif_mongo_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: notif_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: notif_mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  api:
+    build:
+      context: .
+    container_name: notif_api
+    environment:
+      - PORT=3007
+      - MONGO_URI=mongodb://mongo:27017/notification
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
+      - RABBITMQ_EXCHANGE=notifications
+      - RABBITMQ_QUEUE_EMAIL=notifications.send.email
+      - RABBITMQ_ROUTING_KEY_EMAIL=send.email
+      - RABBITMQ_DLQ=notifications.dlq
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - MAIL_FROM=no-reply@fst-cfc.local
+    depends_on:
+      - mongo
+      - rabbitmq
+      - mailhog
+    ports:
+      - "3007:3007"
+
+  worker:
+    build:
+      context: .
+    container_name: notif_worker
+    command: ["node", "dist/worker.js"]
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/notification
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
+      - RABBITMQ_EXCHANGE=notifications
+      - RABBITMQ_QUEUE_EMAIL=notifications.send.email
+      - RABBITMQ_ROUTING_KEY_EMAIL=send.email
+      - RABBITMQ_DLQ=notifications.dlq
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - MAIL_FROM=no-reply@fst-cfc.local
+    depends_on:
+      - mongo
+      - rabbitmq
+      - mailhog
+
+volumes:
+  notif_mongo_data:

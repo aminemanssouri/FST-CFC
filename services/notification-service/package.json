@@ -1,0 +1,43 @@
+{
+  "name": "notification-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Notification Service (API + Worker) - NestJS",
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "lint": "echo 'TODO lint'",
+    "worker": "node dist/worker.js",
+    "worker:dev": "ts-node -r tsconfig-paths/register src/worker.ts",
+    "test": "echo 'TODO tests'"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^4.0.3",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/mongoose": "^10.0.0",
+    "@nestjs/platform-express": "^10.0.0",
+    "amqplib": "^0.10.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "handlebars": "^4.7.8",
+    "mongoose": "^8.0.0",
+    "nodemailer": "^8.0.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.0.0",
+    "@nestjs/schematics": "^10.0.0",
+    "@nestjs/testing": "^10.0.0",
+    "@types/amqplib": "^0.10.5",
+    "@types/node": "^20.11.30",
+    "@types/nodemailer": "^6.4.14",
+    "@types/uuid": "^9.0.8",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.4.5"
+  }
+}
