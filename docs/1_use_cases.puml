@@ -1,0 +1,60 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle hollow
+
+' Acteurs / Actors
+actor "Super Admin" as SA
+actor "Admin Établissement\n(Establishment Admin)" as AE
+actor "Coordinateur\n(Coordinator)" as CO
+actor "Candidat\n(Candidate)" as CA
+actor "Système (Job Planifié)\n(System Cron)" as SYS
+
+rectangle "Système CFC (Centre de Formation Continue)" {
+  
+  ' Cas d'utilisation globaux
+  usecase "Gérer les établissements et admins" as UC1
+  usecase "Gérer les configurations globales" as UC2
+  usecase "Consulter le reporting global" as UC3
+  
+  ' Cas d'utilisation par établissement
+  usecase "Gérer les formations\n(Créer/Publier/Archiver)" as UC4
+  usecase "Valider/Refuser les dossiers" as UC5
+  
+  ' Cas d'utilisation par formation
+  usecase "Gérer la période d'inscription\n(Ouvrir/Fermer dates)" as UC6
+  
+  ' Cas d'utilisation candidats
+  usecase "Consulter le catalogue des formations" as UC7
+  usecase "Se préinscrire et déposer un dossier" as UC8
+  usecase "Recevoir des notifications" as UC9
+  
+  ' Cas d'utilisation système
+  usecase "Fermer automatiquement les inscriptions" as UC10
+}
+
+' Relations Super Admin
+SA --> UC1
+SA --> UC2
+SA --> UC3
+
+' Relations Admin Etablissement
+AE --> UC4
+AE --> UC5
+
+' Relations Coordinateur
+CO --> UC6
+
+' Relations Candidat
+CA --> UC7
+CA --> UC8
+CA --> UC9
+
+' Relations Système
+SYS --> UC10
+
+' Dépendances (Includes/Extends)
+UC8 ..> UC7 : <<include>>
+UC5 ..> UC9 : <<include>> (Notifie le candidat)
+
+@enduml

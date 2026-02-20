@@ -1,0 +1,109 @@
+@startuml
+title Scenario A: Coordinator opens registrations
+autonumber
+
+actor "Coordinator" as Coord
+participant "API Gateway\n(Node.js)" as API
+participant "Auth Service\n(Java)" as Auth
+participant "Program Service\n(Go)" as Prog
+database "DB (Program)" as DB
+
+Coord -> API : PUT /api/programs/{id}/registrations\n(dates, Token)
+API -> Auth : ValidateToken(Token)
+Auth --> API : Valid Token (Role: COORDINATOR, id: user_id)
+
+API -> Prog : UpdateRegistrationWindow({id}, dates, user_id)
+Prog -> DB : SELECT coordinator_id FROM program WHERE id={id}
+DB --> Prog : coordinator_id
+
+alt If user_id == coordinator_id
+    Prog -> DB : UPDATE program SET opening_date=...,\nclosing_date=..., registrations_open=TRUE
+    DB --> Prog : Success
+    Prog --> API : 200 OK
+    API --> Coord : Success: Registrations opened
+else Permission denied
+    Prog --> API : 403 Forbidden (Unauthorized for this program)
+    API --> Coord : Error 403
+end
+@enduml
+@startuml
+title Scenario B: Candidate pre-registers and submits application
+autonumber
+
+actor "Candidate" as Cand
+participant "API Gateway" as API
+participant "Program Service" as Prog
+participant "Document Service\n(Go)" as Doc
+participant "Application Service\n(Go)" as App
+
+Cand -> API : GET /api/programs/{id}/eligibility
+API -> Prog : CheckRegistrationOpen({id})
+Prog --> API : true (Published & Valid dates)
+API --> Cand : Display application form
+
+Cand -> API : POST /api/documents/upload (Files)
+API -> Doc : UploadFiles(Files)
+Doc -> Doc : Save to S3/MinIO
+Doc --> API : Document URLs
+
+Cand -> API : POST /api/applications (Data + URLs)
+API -> App : CreateApplication(Data, URLs)
+App -> App : INSERT Application (State=SUBMITTED)
+App --> API : 201 Created (application_id)
+API --> Cand : Application submitted successfully
+@enduml
+@startuml
+title Scenario C: Establishment Admin validates/refuses application
+autonumber
+
+actor "Establishment Admin" as Admin
+participant "API Gateway" as API
+participant "Application Service" as App
+participant "Institution Service\n(Java)" as Inst
+queue "RabbitMQ\n(Event Bus)" as Bus
+participant "Notification Service" as Notif
+
+Admin -> API : PATCH /api/applications/{id}/status (State=ACCEPTED)
+API -> App : UpdateApplicationState({id}, ACCEPTED, admin_id)
+
+App -> Inst : GetInstitutionByAdmin(admin_id)
+Inst --> App : institution_id of the Admin
+
+App -> App : Verify Application.program.institution_id == Admin.institution_id
+
+alt Valid Scope
+    App -> App : UPDATE Application SET state=ACCEPTED
+    App --> API : 200 OK
+    API --> Admin : Application accepted
+    
+    App -> Bus : PublishEvent(ApplicationAccepted, candidate_id)
+    Bus -> Notif : Consume(ApplicationAccepted)
+    Notif -> Notif : Send Email to candidate
+else Out of Scope
+    App --> API : 403 Forbidden
+end
+@enduml
+@startuml
+title Scenario D: Automatic closure (Scheduled Job)
+autonumber
+
+participant "Scheduler / Cron\n(Go)" as Cron
+participant "Program Service\n(Go)" as Prog
+database "DB (Program)" as DB
+queue "RabbitMQ" as Bus
+participant "Notification Service" as Notif
+
+Cron -> Prog : POST /internal/jobs/close-registrations
+Prog -> DB : SELECT id, coordinator_id FROM program \nWHERE closing_date < NOW() AND registrations_open=TRUE
+DB --> Prog : List of expired programs
+
+loop For each expired program
+    Prog -> DB : UPDATE program SET registrations_open=FALSE
+    Prog -> Bus : PublishEvent(RegistrationClosed, coordinator_id)
+end
+
+Prog --> Cron : 200 OK (Job finished)
+
+Bus -> Notif : Consume(RegistrationClosed)
+Notif -> Notif : Send Email to coordinator ("Registrations are closed")
+@enduml

@@ -1,0 +1,95 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "Auth & RBAC Service" {
+  class Utilisateur {
+    - id : UUID
+    - nom : String
+    - prenom : String
+    - email : String
+  }
+  
+  class Role {
+    - id : UUID
+    - nom : String 
+    ' (SUPER_ADMIN, ADMIN_ETAB, COORDINATEUR, CANDIDAT)
+  }
+  
+  class Permission {
+    - ressource : String
+    - action : String
+  }
+}
+
+package "Institution Service" {
+  class Etablissement {
+    - id : UUID
+    - nom : String
+    - code : String
+    - admin_id : UUID <<SoftLink Utilisateur>>
+  }
+}
+
+package "Program Service" {
+  class Formation {
+    - id : UUID
+    - etablissement_id : UUID <<SoftLink Etablissement>>
+    - coordinateur_id : UUID <<SoftLink Utilisateur>>
+    - titre : String
+    - description : String
+    - etat : EtatFormation
+    - date_ouverture : Date
+    - date_fermeture : Date
+    - inscriptions_ouvertes : Boolean
+  }
+
+  enum EtatFormation {
+    BROUILLON
+    PUBLIEE
+    ARCHIVEE
+  }
+}
+
+package "Application Service" {
+  class Inscription {
+    - id : UUID
+    - candidat_id : UUID <<SoftLink Utilisateur>>
+    - formation_id : UUID <<SoftLink Formation>>
+    - dateCreation : Date
+    - etat : EtatInscription
+  }
+
+  enum EtatInscription {
+    PREINSCRIPTION
+    DOSSIER_SOUMIS
+    EN_VALIDATION
+    ACCEPTE
+    REFUSE
+    INSCRIT
+  }
+}
+
+package "Document Service" {
+  class Document {
+    - id : UUID
+    - inscription_id : UUID <<SoftLink Inscription>>
+    - nom_fichier : String
+    - url_stockage : String
+  }
+}
+
+' Relations internes au service Auth
+Utilisateur "1" -right- "*" Role : "possède >"
+Role "1" -- "*" Permission : "définit >"
+
+' Relations logiques inter-services (Liens par UUID)
+Utilisateur "0..1" .. "*" Etablissement : "gère (Admin) >"
+Utilisateur "0..1" .. "*" Formation : "coordonne >"
+Utilisateur "1" .. "*" Inscription : "postule (Candidat) >"
+
+Etablissement "1" .. "*" Formation : "propose >"
+Formation "1" .. "*" Inscription : "reçoit >"
+Inscription "1" .. "*" Document : "inclut >"
+
+@enduml
