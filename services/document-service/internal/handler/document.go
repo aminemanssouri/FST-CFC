@@ -23,17 +23,20 @@ func NewDocumentHandler(repo *repository.DocumentRepository, s3 *storage.S3Clien
 	return &DocumentHandler{repo: repo, s3: s3}
 }
 
-// List returns all documents, optionally filtered by owner_id.
+// List returns all documents, optionally filtered by inscription_id.
 func (h *DocumentHandler) List(c *gin.Context) {
-	ownerID := c.Query("owner_id")
-	if ownerID != "" {
-		docs, err := h.repo.FindByOwnerID(ownerID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	inscriptionIDStr := c.Query("inscription_id")
+	if inscriptionIDStr != "" {
+		inscriptionID, err := strconv.ParseUint(inscriptionIDStr, 10, 32)
+		if err == nil {
+			docs, err := h.repo.FindByInscriptionID(uint(inscriptionID))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"data": docs})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"data": docs})
-		return
 	}
 
 	docs, err := h.repo.FindAll()
@@ -61,10 +64,17 @@ func (h *DocumentHandler) Get(c *gin.Context) {
 }
 
 // Upload handles multipart file upload.
+// Maps to: Sequence Diagram B — candidate uploads files.
 func (h *DocumentHandler) Upload(c *gin.Context) {
-	ownerID := c.PostForm("owner_id")
-	if ownerID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "owner_id is required"})
+	inscriptionIDStr := c.PostForm("inscription_id")
+	if inscriptionIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "inscription_id is required"})
+		return
+	}
+
+	inscriptionID, err := strconv.ParseUint(inscriptionIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid inscription_id"})
 		return
 	}
 
@@ -76,7 +86,7 @@ func (h *DocumentHandler) Upload(c *gin.Context) {
 	defer file.Close()
 
 	// Generate unique S3 key
-	s3Key := fmt.Sprintf("%s/%s/%s", ownerID, uuid.New().String(), header.Filename)
+	s3Key := fmt.Sprintf("inscriptions/%d/%s/%s", inscriptionID, uuid.New().String(), header.Filename)
 
 	contentType := header.Header.Get("Content-Type")
 	if contentType == "" {
@@ -91,12 +101,12 @@ func (h *DocumentHandler) Upload(c *gin.Context) {
 
 	// Save metadata to DB
 	doc := model.Document{
-		OwnerID:     ownerID,
-		Filename:    header.Filename,
-		ContentType: contentType,
-		Size:        header.Size,
-		S3Key:       s3Key,
-		Version:     1,
+		InscriptionID: uint(inscriptionID),
+		NomFichier:    header.Filename,
+		ContentType:   contentType,
+		Size:          header.Size,
+		URLStockage:   s3Key,
+		Version:       1,
 	}
 
 	if err := h.repo.Create(&doc); err != nil {
@@ -123,7 +133,7 @@ func (h *DocumentHandler) Download(c *gin.Context) {
 		return
 	}
 
-	presignedURL, err := h.s3.PresignedURL(c.Request.Context(), doc.S3Key)
+	presignedURL, err := h.s3.PresignedURL(c.Request.Context(), doc.URLStockage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -131,7 +141,7 @@ func (h *DocumentHandler) Download(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"download_url": presignedURL.String(),
-		"filename":     doc.Filename,
+		"nom_fichier":  doc.NomFichier,
 		"content_type": doc.ContentType,
 	})
 }
@@ -151,7 +161,7 @@ func (h *DocumentHandler) Delete(c *gin.Context) {
 	}
 
 	// Delete from S3
-	if err := h.s3.Delete(c.Request.Context(), doc.S3Key); err != nil {
+	if err := h.s3.Delete(c.Request.Context(), doc.URLStockage); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

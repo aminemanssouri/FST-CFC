@@ -9,61 +9,76 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ApplicationHandler handles HTTP requests for applications.
-type ApplicationHandler struct {
-	repo *repository.ApplicationRepository
+// InscriptionHandler handles HTTP requests for inscriptions.
+type InscriptionHandler struct {
+	repo *repository.InscriptionRepository
 }
 
-// NewApplicationHandler creates a new ApplicationHandler.
-func NewApplicationHandler(repo *repository.ApplicationRepository) *ApplicationHandler {
-	return &ApplicationHandler{repo: repo}
+// NewInscriptionHandler creates a new InscriptionHandler.
+func NewInscriptionHandler(repo *repository.InscriptionRepository) *InscriptionHandler {
+	return &InscriptionHandler{repo: repo}
 }
 
-// List returns all applications.
-func (h *ApplicationHandler) List(c *gin.Context) {
-	candidateID := c.Query("candidate_id")
-	if candidateID != "" {
-		apps, err := h.repo.FindByCandidateID(candidateID)
+// List returns all inscriptions, optionally filtered by candidat_id or formation_id.
+func (h *InscriptionHandler) List(c *gin.Context) {
+	candidatID := c.Query("candidat_id")
+	if candidatID != "" {
+		inscriptions, err := h.repo.FindByCandidatID(candidatID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"data": apps})
+		c.JSON(http.StatusOK, gin.H{"data": inscriptions})
 		return
 	}
 
-	apps, err := h.repo.FindAll()
+	formationIDStr := c.Query("formation_id")
+	if formationIDStr != "" {
+		formationID, err := strconv.ParseUint(formationIDStr, 10, 32)
+		if err == nil {
+			inscriptions, err := h.repo.FindByFormationID(uint(formationID))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"data": inscriptions})
+			return
+		}
+	}
+
+	inscriptions, err := h.repo.FindAll()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": apps})
+	c.JSON(http.StatusOK, gin.H{"data": inscriptions})
 }
 
-// Get returns a single application by ID with decisions and history.
-func (h *ApplicationHandler) Get(c *gin.Context) {
+// Get returns a single inscription by ID with decisions and history.
+func (h *InscriptionHandler) Get(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	app, err := h.repo.FindByID(uint(id))
+	ins, err := h.repo.FindByID(uint(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "inscription not found"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": app})
+	c.JSON(http.StatusOK, gin.H{"data": ins})
 }
 
-// Create inserts a new application (DRAFT status).
-func (h *ApplicationHandler) Create(c *gin.Context) {
+// Create inserts a new inscription (PREINSCRIPTION state).
+// Maps to: Sequence Diagram B — candidate pre-registers.
+func (h *InscriptionHandler) Create(c *gin.Context) {
 	var input struct {
-		CandidateID string `json:"candidate_id" binding:"required"`
-		ProgramID   uint   `json:"program_id" binding:"required"`
-		FullName    string `json:"full_name" binding:"required"`
+		CandidatID  string `json:"candidat_id" binding:"required"`
+		FormationID uint   `json:"formation_id" binding:"required"`
+		NomComplet  string `json:"nom_complet" binding:"required"`
 		Email       string `json:"email" binding:"required,email"`
-		Phone       string `json:"phone"`
+		Telephone   string `json:"telephone"`
 		Notes       string `json:"notes"`
 	}
 
@@ -72,26 +87,27 @@ func (h *ApplicationHandler) Create(c *gin.Context) {
 		return
 	}
 
-	app := model.Application{
-		CandidateID: input.CandidateID,
-		ProgramID:   input.ProgramID,
-		Status:      model.StatusDraft,
-		FullName:    input.FullName,
+	ins := model.Inscription{
+		CandidatID:  input.CandidatID,
+		FormationID: input.FormationID,
+		Etat:        model.EtatPreinscription,
+		NomComplet:  input.NomComplet,
 		Email:       input.Email,
-		Phone:       input.Phone,
+		Telephone:   input.Telephone,
 		Notes:       input.Notes,
 	}
 
-	if err := h.repo.Create(&app); err != nil {
+	if err := h.repo.Create(&ins); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"data": app})
+	c.JSON(http.StatusCreated, gin.H{"data": ins})
 }
 
-// Transition changes the application status according to the state machine rules.
-func (h *ApplicationHandler) Transition(c *gin.Context) {
+// Transition changes the inscription status according to the state machine rules.
+// Maps to: State Diagram — Application Lifecycle & Sequence Diagram C.
+func (h *InscriptionHandler) Transition(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
@@ -99,9 +115,9 @@ func (h *ApplicationHandler) Transition(c *gin.Context) {
 	}
 
 	var input struct {
-		Status    string `json:"status" binding:"required"`
-		ChangedBy string `json:"changed_by" binding:"required"`
-		Comment   string `json:"comment"`
+		Etat        string `json:"etat" binding:"required"`
+		ModifiePar  string `json:"modifie_par" binding:"required"`
+		Commentaire string `json:"commentaire"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -109,52 +125,52 @@ func (h *ApplicationHandler) Transition(c *gin.Context) {
 		return
 	}
 
-	app, err := h.repo.FindByID(uint(id))
+	ins, err := h.repo.FindByID(uint(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "inscription not found"})
 		return
 	}
 
-	targetStatus := model.ApplicationStatus(input.Status)
+	targetEtat := model.EtatInscription(input.Etat)
 
-	if !app.Status.CanTransitionTo(targetStatus) {
+	if !ins.Etat.CanTransitionTo(targetEtat) {
 		c.JSON(http.StatusConflict, gin.H{
-			"error":          "invalid status transition",
-			"current_status": app.Status,
-			"target_status":  targetStatus,
-			"allowed":        model.ValidTransitions[app.Status],
+			"error":       "transition invalide",
+			"etat_actuel": ins.Etat,
+			"etat_cible":  targetEtat,
+			"autorise":    model.ValidTransitions[ins.Etat],
 		})
 		return
 	}
 
-	oldStatus := app.Status
-	app.Status = targetStatus
+	ancienEtat := ins.Etat
+	ins.Etat = targetEtat
 
-	if err := h.repo.Update(app); err != nil {
+	if err := h.repo.Update(ins); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Record decision (for terminal or review statuses)
-	if targetStatus == model.StatusAccepted || targetStatus == model.StatusRejected ||
-		targetStatus == model.StatusWaitlisted || targetStatus == model.StatusUnderReview {
+	// Record decision (for review/acceptance/rejection states)
+	if targetEtat == model.EtatAccepte || targetEtat == model.EtatRefuse ||
+		targetEtat == model.EtatEnValidation || targetEtat == model.EtatInscrit {
 		decision := model.Decision{
-			ApplicationID: app.ID,
-			DecidedBy:     input.ChangedBy,
-			Status:        targetStatus,
-			Comment:       input.Comment,
+			InscriptionID: ins.ID,
+			DecidePar:     input.ModifiePar,
+			Etat:          targetEtat,
+			Commentaire:   input.Commentaire,
 		}
 		_ = h.repo.CreateDecision(&decision)
 	}
 
-	// Record history
-	history := model.ApplicationHistory{
-		ApplicationID: app.ID,
-		OldStatus:     oldStatus,
-		NewStatus:     targetStatus,
-		ChangedBy:     input.ChangedBy,
+	// Record history (audit trail)
+	historique := model.InscriptionHistorique{
+		InscriptionID: ins.ID,
+		AncienEtat:    ancienEtat,
+		NouvelEtat:    targetEtat,
+		ModifiePar:    input.ModifiePar,
 	}
-	_ = h.repo.CreateHistory(&history)
+	_ = h.repo.CreateHistory(&historique)
 
-	c.JSON(http.StatusOK, gin.H{"data": app})
+	c.JSON(http.StatusOK, gin.H{"data": ins})
 }

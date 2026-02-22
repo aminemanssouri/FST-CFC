@@ -6,28 +6,28 @@ import (
 	"gorm.io/gorm"
 )
 
-// ApplicationStatus represents the state of a student application.
-type ApplicationStatus string
+// EtatInscription represents the state of a student application.
+type EtatInscription string
 
 const (
-	StatusDraft       ApplicationStatus = "DRAFT"
-	StatusSubmitted   ApplicationStatus = "SUBMITTED"
-	StatusUnderReview ApplicationStatus = "UNDER_REVIEW"
-	StatusAccepted    ApplicationStatus = "ACCEPTED"
-	StatusRejected    ApplicationStatus = "REJECTED"
-	StatusWaitlisted  ApplicationStatus = "WAITLISTED"
+	EtatPreinscription EtatInscription = "PREINSCRIPTION"
+	EtatDossierSoumis  EtatInscription = "DOSSIER_SOUMIS"
+	EtatEnValidation   EtatInscription = "EN_VALIDATION"
+	EtatAccepte        EtatInscription = "ACCEPTE"
+	EtatRefuse         EtatInscription = "REFUSE"
+	EtatInscrit        EtatInscription = "INSCRIT"
 )
 
 // ValidTransitions defines which status transitions are allowed.
-var ValidTransitions = map[ApplicationStatus][]ApplicationStatus{
-	StatusDraft:       {StatusSubmitted},
-	StatusSubmitted:   {StatusUnderReview},
-	StatusUnderReview: {StatusAccepted, StatusRejected, StatusWaitlisted},
-	StatusWaitlisted:  {StatusAccepted, StatusRejected},
+var ValidTransitions = map[EtatInscription][]EtatInscription{
+	EtatPreinscription: {EtatDossierSoumis},
+	EtatDossierSoumis:  {EtatEnValidation},
+	EtatEnValidation:   {EtatAccepte, EtatRefuse},
+	EtatAccepte:        {EtatInscrit},
 }
 
 // CanTransitionTo checks whether a transition from the current status to the target is allowed.
-func (s ApplicationStatus) CanTransitionTo(target ApplicationStatus) bool {
+func (s EtatInscription) CanTransitionTo(target EtatInscription) bool {
 	allowed, ok := ValidTransitions[s]
 	if !ok {
 		return false
@@ -40,20 +40,21 @@ func (s ApplicationStatus) CanTransitionTo(target ApplicationStatus) bool {
 	return false
 }
 
-// Application represents a student application (préinscription / dossier / inscription).
-type Application struct {
-	ID          uint              `json:"id" gorm:"primaryKey"`
-	CandidateID string            `json:"candidate_id" gorm:"type:varchar(100);not null;index"`
-	ProgramID   uint              `json:"program_id" gorm:"not null;index"`
-	Status      ApplicationStatus `json:"status" gorm:"type:varchar(20);not null;default:'DRAFT';index"`
-	FullName    string            `json:"full_name" gorm:"type:varchar(255);not null"`
-	Email       string            `json:"email" gorm:"type:varchar(255);not null"`
-	Phone       string            `json:"phone" gorm:"type:varchar(50)"`
-	Notes       string            `json:"notes" gorm:"type:text"`
-	CreatedAt   time.Time         `json:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt    `json:"-" gorm:"index"`
+// Inscription represents a candidate application (préinscription / dossier / inscription).
+type Inscription struct {
+	ID           uint            `json:"id" gorm:"primaryKey"`
+	CandidatID   string          `json:"candidat_id" gorm:"type:varchar(100);not null;index"`
+	FormationID  uint            `json:"formation_id" gorm:"not null;index"`
+	Etat         EtatInscription `json:"etat" gorm:"type:varchar(20);not null;default:'PREINSCRIPTION';index"`
+	NomComplet   string          `json:"nom_complet" gorm:"type:varchar(255);not null"`
+	Email        string          `json:"email" gorm:"type:varchar(255);not null"`
+	Telephone    string          `json:"telephone" gorm:"type:varchar(50)"`
+	Notes        string          `json:"notes" gorm:"type:text"`
+	DateCreation time.Time       `json:"date_creation" gorm:"autoCreateTime"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt  `json:"-" gorm:"index"`
 
-	Decisions []Decision           `json:"decisions,omitempty" gorm:"foreignKey:ApplicationID"`
-	History   []ApplicationHistory `json:"history,omitempty" gorm:"foreignKey:ApplicationID"`
+	Decisions []Decision              `json:"decisions,omitempty" gorm:"foreignKey:InscriptionID"`
+	History   []InscriptionHistorique `json:"history,omitempty" gorm:"foreignKey:InscriptionID"`
 }

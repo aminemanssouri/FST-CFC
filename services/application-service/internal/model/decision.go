@@ -2,12 +2,12 @@ package model
 
 import "time"
 
-// Decision records an admin decision on an application.
+// Decision records an admin decision on an inscription.
 type Decision struct {
-	ID            uint              `json:"id" gorm:"primaryKey"`
-	ApplicationID uint              `json:"application_id" gorm:"not null;index"`
-	DecidedBy     string            `json:"decided_by" gorm:"type:varchar(100);not null"`
-	Status        ApplicationStatus `json:"status" gorm:"type:varchar(20);not null"`
-	Comment       string            `json:"comment" gorm:"type:text"`
-	CreatedAt     time.Time         `json:"created_at"`
+	ID            uint            `json:"id" gorm:"primaryKey"`
+	InscriptionID uint            `json:"inscription_id" gorm:"not null;index"`
+	DecidePar     string          `json:"decide_par" gorm:"type:varchar(100);not null"`
+	Etat          EtatInscription `json:"etat" gorm:"type:varchar(20);not null"`
+	Commentaire   string          `json:"commentaire" gorm:"type:text"`
+	CreatedAt     time.Time       `json:"created_at"`
 }

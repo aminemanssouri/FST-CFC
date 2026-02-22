@@ -5,44 +5,58 @@ import (
 	"gorm.io/gorm"
 )
 
-// ProgramRepository handles database operations for programs.
-type ProgramRepository struct {
+// FormationRepository handles database operations for formations.
+type FormationRepository struct {
 	db *gorm.DB
 }
 
-// NewProgramRepository creates a new ProgramRepository.
-func NewProgramRepository(db *gorm.DB) *ProgramRepository {
-	return &ProgramRepository{db: db}
+// NewFormationRepository creates a new FormationRepository.
+func NewFormationRepository(db *gorm.DB) *FormationRepository {
+	return &FormationRepository{db: db}
 }
 
-// FindAll returns all non-archived programs.
-func (r *ProgramRepository) FindAll() ([]model.Program, error) {
-	var programs []model.Program
-	err := r.db.Preload("RegistrationWindows").Find(&programs).Error
-	return programs, err
+// FindAll returns all non-archived formations.
+func (r *FormationRepository) FindAll() ([]model.Formation, error) {
+	var formations []model.Formation
+	err := r.db.Find(&formations).Error
+	return formations, err
 }
 
-// FindByID returns a program by its ID.
-func (r *ProgramRepository) FindByID(id uint) (*model.Program, error) {
-	var program model.Program
-	err := r.db.Preload("RegistrationWindows").First(&program, id).Error
+// FindByID returns a single formation by ID.
+func (r *FormationRepository) FindByID(id uint) (*model.Formation, error) {
+	var f model.Formation
+	err := r.db.First(&f, id).Error
 	if err != nil {
 		return nil, err
 	}
-	return &program, nil
+	return &f, nil
 }
 
-// Create inserts a new program.
-func (r *ProgramRepository) Create(program *model.Program) error {
-	return r.db.Create(program).Error
+// FindByEtablissement returns all formations for an institution.
+func (r *FormationRepository) FindByEtablissement(etablissementID string) ([]model.Formation, error) {
+	var formations []model.Formation
+	err := r.db.Where("etablissement_id = ?", etablissementID).Find(&formations).Error
+	return formations, err
 }
 
-// Update saves changes to an existing program.
-func (r *ProgramRepository) Update(program *model.Program) error {
-	return r.db.Save(program).Error
+// FindPublished returns all published formations (catalog).
+func (r *FormationRepository) FindPublished() ([]model.Formation, error) {
+	var formations []model.Formation
+	err := r.db.Where("etat = ?", model.EtatPubliee).Find(&formations).Error
+	return formations, err
 }
 
-// Delete soft-deletes a program.
-func (r *ProgramRepository) Delete(id uint) error {
-	return r.db.Delete(&model.Program{}, id).Error
+// Create inserts a new formation.
+func (r *FormationRepository) Create(f *model.Formation) error {
+	return r.db.Create(f).Error
+}
+
+// Update saves changes to an existing formation.
+func (r *FormationRepository) Update(f *model.Formation) error {
+	return r.db.Save(f).Error
+}
+
+// Delete soft-deletes a formation.
+func (r *FormationRepository) Delete(id uint) error {
+	return r.db.Delete(&model.Formation{}, id).Error
 }

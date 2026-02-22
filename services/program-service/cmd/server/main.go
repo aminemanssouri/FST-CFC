@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/aminemanssouri/FST-CFC/services/program-service/internal/config"
 	"github.com/aminemanssouri/FST-CFC/services/program-service/internal/handler"
@@ -16,30 +17,37 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// Connect to PostgreSQL
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+	// Connect to PostgreSQL with retry
+	var db *gorm.DB
+	var err error
+	for i := 1; i <= 10; i++ {
+		db, err = gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+		if err == nil {
+			break
+		}
+		log.Printf("attempt %d: waiting for database... (%v)", i, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		log.Fatalf("failed to connect to database after retries: %v", err)
 	}
 
 	// Auto-migrate models
-	if err := db.AutoMigrate(&model.Program{}, &model.RegistrationWindow{}); err != nil {
+	if err := db.AutoMigrate(&model.Formation{}); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
 	log.Println("database connected and migrated")
 
-	// Repositories
-	programRepo := repository.NewProgramRepository(db)
-	windowRepo := repository.NewRegistrationWindowRepository(db)
+	// Repository
+	formationRepo := repository.NewFormationRepository(db)
 
-	// Handlers
-	programHandler := handler.NewProgramHandler(programRepo)
-	windowHandler := handler.NewRegistrationWindowHandler(windowRepo)
+	// Handler
+	formationHandler := handler.NewFormationHandler(formationRepo)
 
 	// Router
 	r := gin.Default()
-	router.Setup(r, programHandler, windowHandler)
+	router.Setup(r, formationHandler, cfg.JWTSecret)
 
 	// Start server
 	log.Printf("program-service starting on port %s", cfg.Port)

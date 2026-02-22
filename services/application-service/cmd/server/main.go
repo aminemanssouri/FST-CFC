@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/aminemanssouri/FST-CFC/services/application-service/internal/config"
 	"github.com/aminemanssouri/FST-CFC/services/application-service/internal/handler"
@@ -16,32 +17,41 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// Connect to PostgreSQL
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+	// Connect to PostgreSQL with retry
+	var db *gorm.DB
+	var err error
+	for i := 1; i <= 10; i++ {
+		db, err = gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+		if err == nil {
+			break
+		}
+		log.Printf("attempt %d: waiting for database... (%v)", i, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		log.Fatalf("failed to connect to database after retries: %v", err)
 	}
 
 	// Auto-migrate models
 	if err := db.AutoMigrate(
-		&model.Application{},
+		&model.Inscription{},
 		&model.Decision{},
-		&model.ApplicationHistory{},
+		&model.InscriptionHistorique{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
 	log.Println("database connected and migrated")
 
-	// Repositories
-	appRepo := repository.NewApplicationRepository(db)
+	// Repository
+	inscriptionRepo := repository.NewInscriptionRepository(db)
 
-	// Handlers
-	appHandler := handler.NewApplicationHandler(appRepo)
+	// Handler
+	inscriptionHandler := handler.NewInscriptionHandler(inscriptionRepo)
 
 	// Router
 	r := gin.Default()
-	router.Setup(r, appHandler)
+	router.Setup(r, inscriptionHandler, cfg.JWTSecret)
 
 	// Start server
 	log.Printf("application-service starting on port %s", cfg.Port)

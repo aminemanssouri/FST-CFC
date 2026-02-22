@@ -14,6 +14,7 @@ type Config struct {
 	DBPass    string
 	DBName    string
 	DBSSLMode string
+	JWTSecret string
 }
 
 // Load reads configuration from environment variables.
@@ -26,6 +27,7 @@ func Load() *Config {
 		DBPass:    getEnv("DB_PASSWORD", "application_pass"),
 		DBName:    getEnv("DB_NAME", "application_db"),
 		DBSSLMode: getEnv("DB_SSLMODE", "disable"),
+		JWTSecret: getEnv("JWT_SECRET", "changeme-super-secret-key"),
 	}
 }
 

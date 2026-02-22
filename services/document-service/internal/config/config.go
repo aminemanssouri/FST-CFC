@@ -21,6 +21,7 @@ type Config struct {
 	S3Bucket          string
 	S3UseSSL          bool
 	PresignExpiryMins int
+	JWTSecret         string
 }
 
 // Load reads configuration from environment variables.
@@ -42,6 +43,7 @@ func Load() *Config {
 		S3Bucket:          getEnv("S3_BUCKET", "documents"),
 		S3UseSSL:          useSSL,
 		PresignExpiryMins: presignExpiry,
+		JWTSecret:         getEnv("JWT_SECRET", "changeme-super-secret-key"),
 	}
 }
 

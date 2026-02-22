@@ -43,6 +43,7 @@ services:
       - S3_BUCKET=documents
       - S3_USE_SSL=false
       - PRESIGN_EXPIRY_MINUTES=15
+      - JWT_SECRET=changeme-super-secret-key
     depends_on:
       - postgres
       - minio

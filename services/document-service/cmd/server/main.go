@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/aminemanssouri/FST-CFC/services/document-service/internal/config"
 	"github.com/aminemanssouri/FST-CFC/services/document-service/internal/handler"
@@ -17,10 +18,19 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// Connect to PostgreSQL
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+	// Connect to PostgreSQL with retry
+	var db *gorm.DB
+	var err error
+	for i := 1; i <= 10; i++ {
+		db, err = gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
+		if err == nil {
+			break
+		}
+		log.Printf("attempt %d: waiting for database... (%v)", i, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		log.Fatalf("failed to connect to database after retries: %v", err)
 	}
 
 	// Auto-migrate models
@@ -28,29 +38,18 @@ func main() {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
-	log.Println("database connected and migrated")
+	// Initialize S3 client
+	s3Client := storage.NewS3Client(cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey, cfg.S3Bucket, cfg.S3UseSSL, cfg.PresignExpiryMins)
 
-	// S3 client
-	s3Client := storage.NewS3Client(
-		cfg.S3Endpoint,
-		cfg.S3AccessKey,
-		cfg.S3SecretKey,
-		cfg.S3Bucket,
-		cfg.S3UseSSL,
-		cfg.PresignExpiryMins,
-	)
+	log.Println("database connected and migrated, S3 client initialized")
 
-	log.Println("S3 client initialized")
-
-	// Repository
+	// Repository and Handler
 	docRepo := repository.NewDocumentRepository(db)
-
-	// Handler
 	docHandler := handler.NewDocumentHandler(docRepo, s3Client)
 
 	// Router
 	r := gin.Default()
-	router.Setup(r, docHandler)
+	router.Setup(r, docHandler, cfg.JWTSecret)
 
 	// Start server
 	log.Printf("document-service starting on port %s", cfg.Port)

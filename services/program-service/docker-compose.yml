@@ -24,6 +24,7 @@ services:
       - DB_PASSWORD=program_pass
       - DB_NAME=program_db
       - DB_SSLMODE=disable
+      - JWT_SECRET=changeme-super-secret-key
     depends_on:
       - postgres
     ports:

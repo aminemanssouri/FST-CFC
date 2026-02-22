@@ -29,11 +29,19 @@ func NewS3Client(endpoint, accessKey, secretKey, bucket string, useSSL bool, pre
 		log.Fatalf("failed to create S3 client: %v", err)
 	}
 
-	// Ensure bucket exists
+	// Ensure bucket exists (with retry for container startup)
 	ctx := context.Background()
-	exists, err := client.BucketExists(ctx, bucket)
+	var exists bool
+	for i := 1; i <= 10; i++ {
+		exists, err = client.BucketExists(ctx, bucket)
+		if err == nil {
+			break
+		}
+		log.Printf("attempt %d: waiting for MinIO... (%v)", i, err)
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
-		log.Fatalf("failed to check bucket: %v", err)
+		log.Fatalf("failed to check bucket after retries: %v", err)
 	}
 	if !exists {
 		if err := client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}); err != nil {

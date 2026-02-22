@@ -2,36 +2,51 @@ package router
 
 import (
 	"github.com/aminemanssouri/FST-CFC/services/program-service/internal/handler"
+	"github.com/aminemanssouri/FST-CFC/services/program-service/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 // Setup configures all routes for the program service.
-func Setup(r *gin.Engine, ph *handler.ProgramHandler, rwh *handler.RegistrationWindowHandler) {
-	// Health check
+func Setup(r *gin.Engine, fh *handler.FormationHandler, jwtSecret string) {
+	// Health check — public
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Programs
-	programs := r.Group("/programs")
-	{
-		programs.GET("", ph.List)
-		programs.GET("/:id", ph.Get)
-		programs.POST("", ph.Create)
-		programs.PUT("/:id", ph.Update)
-		programs.DELETE("/:id", ph.Delete)
-		programs.PATCH("/:id/publish", ph.Publish)
-		programs.PATCH("/:id/archive", ph.Archive)
+	// Public catalogue (Candidates: Consulter le catalogue) — no auth
+	r.GET("/catalogue", fh.Catalogue)
 
-		// Registration windows (nested under programs)
-		programs.GET("/:programId/windows", rwh.ListByProgram)
-		programs.POST("/:programId/windows", rwh.Create)
+	// Protected routes — require valid JWT
+	auth := r.Group("/")
+	auth.Use(middleware.AuthMiddleware(jwtSecret))
+	{
+		// Formations CRUD (Admin Établissement)
+		formations := auth.Group("/formations")
+		{
+			formations.GET("", fh.List)
+			formations.GET("/:id", fh.Get)
+			formations.POST("", middleware.RequireRole("ADMIN_ETABLISSEMENT"), fh.Create)
+			formations.PUT("/:id", middleware.RequireRole("ADMIN_ETABLISSEMENT"), fh.Update)
+			formations.DELETE("/:id", middleware.RequireRole("ADMIN_ETABLISSEMENT"), fh.Delete)
+
+			// State transitions (Admin Établissement)
+			formations.PATCH("/:id/publish", middleware.RequireRole("ADMIN_ETABLISSEMENT"), fh.Publish)
+			formations.PATCH("/:id/archive", middleware.RequireRole("ADMIN_ETABLISSEMENT"), fh.Archive)
+
+			// Registration management (Coordinator — Sequence Diagram A)
+			formations.PUT("/:id/registrations", middleware.RequireRole("COORDINATEUR"), fh.UpdateRegistrations)
+			formations.PATCH("/:id/close-registrations", middleware.RequireRole("COORDINATEUR"), fh.CloseRegistrations)
+
+			// Eligibility check (Candidate — Sequence Diagram B)
+			formations.GET("/:id/eligibility", fh.CheckEligibility)
+		}
 	}
 
-	// Registration windows (direct)
-	windows := r.Group("/windows")
+	// Internal endpoint for scheduler (Sequence Diagram D) — SYSTEM role only
+	internal := r.Group("/internal")
+	internal.Use(middleware.AuthMiddleware(jwtSecret))
+	internal.Use(middleware.RequireRole("SYSTEM"))
 	{
-		windows.PUT("/:id", rwh.Update)
-		windows.DELETE("/:id", rwh.Delete)
+		internal.POST("/jobs/close-registrations", fh.CloseExpiredRegistrations)
 	}
 }

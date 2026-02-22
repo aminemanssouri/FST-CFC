@@ -1,0 +1,10 @@
+services:
+  web-app:
+    build:
+      context: .
+    container_name: cfc_web_app
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    restart: unless-stopped

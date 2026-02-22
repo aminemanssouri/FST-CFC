@@ -32,10 +32,10 @@ func (r *DocumentRepository) FindByID(id uint) (*model.Document, error) {
 	return &doc, nil
 }
 
-// FindByOwnerID returns all documents for a given owner.
-func (r *DocumentRepository) FindByOwnerID(ownerID string) ([]model.Document, error) {
+// FindByInscriptionID returns all documents for a given inscription.
+func (r *DocumentRepository) FindByInscriptionID(inscriptionID uint) ([]model.Document, error) {
 	var docs []model.Document
-	err := r.db.Where("owner_id = ?", ownerID).Find(&docs).Error
+	err := r.db.Where("inscription_id = ?", inscriptionID).Find(&docs).Error
 	return docs, err
 }
 
