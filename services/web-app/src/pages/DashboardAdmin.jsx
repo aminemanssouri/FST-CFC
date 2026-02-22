@@ -1,11 +1,15 @@
 import { useState } from 'react'
-import { PageHeader, Badge, Button, Sidebar, Table, TableRow, TableCell, StatCard } from '../components/ui'
+import { Link } from 'react-router-dom'
+import { useToast } from '../components/ui/Toast'
+import { PageHeader, Badge, Button, Sidebar, Table, TableRow, TableCell, StatCard, EmptyState } from '../components/ui'
+import FormationForm from './FormationForm'
 
-const formations = [
+const formationsData = [
     { id: 1, titre: 'Licence en Informatique et Numérique', etat: 'PUBLIEE', inscriptions: true, coordinateur: 'Dr. Mansouri', candidatures: 28 },
     { id: 2, titre: 'Master en Énergies Renouvelables', etat: 'PUBLIEE', inscriptions: true, coordinateur: 'Pr. Belkadi', candidatures: 15 },
     { id: 3, titre: 'DUT en Développement Web', etat: 'BROUILLON', inscriptions: false, coordinateur: 'Dr. Tahiri', candidatures: 0 },
     { id: 7, titre: 'Master en Data Science', etat: 'PUBLIEE', inscriptions: true, coordinateur: 'Pr. Ouazzani', candidatures: 22 },
+    { id: 12, titre: 'Master en Intelligence Artificielle', etat: 'PUBLIEE', inscriptions: true, coordinateur: 'Dr. Amrani', candidatures: 18 },
 ]
 
 const dossiers = [
@@ -38,6 +42,10 @@ const sidebarItems = [
 
 export default function DashboardAdmin() {
     const [tab, setTab] = useState('formations')
+    const [showFormationForm, setShowFormationForm] = useState(false)
+    const toast = useToast()
+
+    const handlePublish = (f) => toast.success(`"${f.titre}" publiée avec succès !`)
 
     return (
         <div className="animate-fade-in">
@@ -52,11 +60,11 @@ export default function DashboardAdmin() {
                         <div className="animate-fade-in">
                             <div className="flex items-center justify-between mb-5">
                                 <h2 className="text-xl font-bold text-slate-800">📚 Gestion des Formations</h2>
-                                <Button size="sm">+ Nouvelle formation</Button>
+                                <Button size="sm" onClick={() => setShowFormationForm(true)}>+ Nouvelle formation</Button>
                             </div>
 
                             <Table columns={['Formation', 'Coordinateur', 'État', 'Inscriptions', 'Candidatures', 'Actions']}>
-                                {formations.map(f => {
+                                {formationsData.map(f => {
                                     const { label, color } = formationEtatConfig[f.etat]
                                     return (
                                         <TableRow key={f.id}>
@@ -71,14 +79,16 @@ export default function DashboardAdmin() {
                                             <TableCell bold>{f.candidatures}</TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
-                                                    <Button variant="subtle" size="sm">Modifier</Button>
-                                                    {f.etat === 'BROUILLON' && <Button size="sm">Publier</Button>}
+                                                    <Button variant="subtle" size="sm" onClick={() => setShowFormationForm(true)}>Modifier</Button>
+                                                    {f.etat === 'BROUILLON' && <Button size="sm" onClick={() => handlePublish(f)}>Publier</Button>}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     )
                                 })}
                             </Table>
+
+                            <FormationForm isOpen={showFormationForm} onClose={() => setShowFormationForm(false)} />
                         </div>
                     )}
 
@@ -102,11 +112,13 @@ export default function DashboardAdmin() {
                                             <TableCell><Badge color={color}>{label}</Badge></TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
-                                                    <Button variant="subtle" size="sm">Voir</Button>
+                                                    <Link to={`/admin/dossiers/${d.id}`}>
+                                                        <Button variant="subtle" size="sm">Voir</Button>
+                                                    </Link>
                                                     {canDecide && (
                                                         <>
-                                                            <Button variant="accent" size="sm">Accepter</Button>
-                                                            <Button variant="danger" size="sm">Refuser</Button>
+                                                            <Button variant="accent" size="sm" onClick={() => toast.success(`${d.candidat} accepté !`)}>Accepter</Button>
+                                                            <Button variant="danger" size="sm" onClick={() => toast.error(`${d.candidat} refusé.`)}>Refuser</Button>
                                                         </>
                                                     )}
                                                 </div>
@@ -122,10 +134,11 @@ export default function DashboardAdmin() {
                     {tab === 'stats' && (
                         <div className="animate-fade-in">
                             <h2 className="text-xl font-bold text-slate-800 mb-5">📊 Statistiques</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                                <StatCard value="4" label="Formations actives" color="brand" />
-                                <StatCard value="65" label="Candidatures totales" color="accent" />
-                                <StatCard value="12" label="En attente de validation" color="amber" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                                <StatCard value="5" label="Formations actives" color="brand" />
+                                <StatCard value="83" label="Candidatures totales" color="accent" />
+                                <StatCard value="12" label="En attente" color="amber" />
+                                <StatCard value="68%" label="Taux d'acceptation" color="brand" />
                             </div>
                         </div>
                     )}

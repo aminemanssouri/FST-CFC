@@ -8,9 +8,13 @@ import Catalogue from './pages/Catalogue'
 import FormationDetail from './pages/FormationDetail'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import NotFound from './pages/NotFound'
+import Profile from './pages/Profile'
+import Notifications from './pages/Notifications'
 import DashboardCandidat from './pages/DashboardCandidat'
 import DashboardAdmin from './pages/DashboardAdmin'
 import DashboardSuperAdmin from './pages/DashboardSuperAdmin'
+import DossierDetail from './pages/DossierDetail'
 
 function App() {
     return (
@@ -18,33 +22,53 @@ function App() {
             <Navbar />
             <main className="main-content">
                 <Routes>
-                    {/* ── Public routes ── */}
+                    {/* ── Public ── */}
                     <Route path="/" element={<Home />} />
                     <Route path="/catalogue" element={<Catalogue />} />
                     <Route path="/formations/:id" element={<FormationDetail />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/inscription" element={<Register />} />
 
-                    {/* ── Candidat only ── */}
+                    {/* ── Authenticated (any role) ── */}
+                    <Route path="/profil" element={
+                        <ProtectedRoute roles={[]}>
+                            <Profile />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/notifications" element={
+                        <ProtectedRoute roles={[]}>
+                            <Notifications />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* ── Candidat ── */}
                     <Route path="/dashboard" element={
                         <ProtectedRoute roles={['CANDIDAT']}>
                             <DashboardCandidat />
                         </ProtectedRoute>
                     } />
 
-                    {/* ── Admin Établissement + Coordinateur ── */}
+                    {/* ── Admin Établissement / Coordinateur ── */}
                     <Route path="/admin" element={
                         <ProtectedRoute roles={['ADMIN_ETAB', 'COORDINATEUR']}>
                             <DashboardAdmin />
                         </ProtectedRoute>
                     } />
+                    <Route path="/admin/dossiers/:id" element={
+                        <ProtectedRoute roles={['ADMIN_ETAB', 'COORDINATEUR']}>
+                            <DossierDetail />
+                        </ProtectedRoute>
+                    } />
 
-                    {/* ── Super Admin only ── */}
+                    {/* ── Super Admin ── */}
                     <Route path="/super-admin" element={
                         <ProtectedRoute roles={['SUPER_ADMIN']}>
                             <DashboardSuperAdmin />
                         </ProtectedRoute>
                     } />
+
+                    {/* ── 404 ── */}
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </main>
             <Footer />
