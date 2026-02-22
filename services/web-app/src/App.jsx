@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import ProtectedRoute from './components/ProtectedRoute'
+
 import Home from './pages/Home'
 import Catalogue from './pages/Catalogue'
 import FormationDetail from './pages/FormationDetail'
@@ -16,14 +18,33 @@ function App() {
             <Navbar />
             <main className="main-content">
                 <Routes>
+                    {/* ── Public routes ── */}
                     <Route path="/" element={<Home />} />
                     <Route path="/catalogue" element={<Catalogue />} />
                     <Route path="/formations/:id" element={<FormationDetail />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/inscription" element={<Register />} />
-                    <Route path="/dashboard" element={<DashboardCandidat />} />
-                    <Route path="/admin" element={<DashboardAdmin />} />
-                    <Route path="/super-admin" element={<DashboardSuperAdmin />} />
+
+                    {/* ── Candidat only ── */}
+                    <Route path="/dashboard" element={
+                        <ProtectedRoute roles={['CANDIDAT']}>
+                            <DashboardCandidat />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* ── Admin Établissement + Coordinateur ── */}
+                    <Route path="/admin" element={
+                        <ProtectedRoute roles={['ADMIN_ETAB', 'COORDINATEUR']}>
+                            <DashboardAdmin />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* ── Super Admin only ── */}
+                    <Route path="/super-admin" element={
+                        <ProtectedRoute roles={['SUPER_ADMIN']}>
+                            <DashboardSuperAdmin />
+                        </ProtectedRoute>
+                    } />
                 </Routes>
             </main>
             <Footer />

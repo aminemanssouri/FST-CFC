@@ -1,8 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { Button } from './ui'
 
 export default function Navbar() {
     const location = useLocation()
+    const { user, isAuthenticated, isCandidat, isAdmin, isSuperAdmin, logout } = useAuth()
+
     const isActive = (path) => location.pathname === path
 
     const linkClass = (path) =>
@@ -24,19 +27,43 @@ export default function Navbar() {
                     </span>
                 </Link>
 
-                {/* Navigation Links */}
+                {/* Navigation Links — role-based */}
                 <ul className="hidden lg:flex items-center gap-8">
+                    {/* Public */}
                     <li><Link to="/" className={linkClass('/')}>Accueil</Link></li>
                     <li><Link to="/catalogue" className={linkClass('/catalogue')}>Formations</Link></li>
-                    <li><Link to="/dashboard" className={linkClass('/dashboard')}>Mon Espace</Link></li>
-                    <li><Link to="/admin" className={linkClass('/admin')}>Administration</Link></li>
-                    <li><Link to="/super-admin" className={linkClass('/super-admin')}>Super Admin</Link></li>
+
+                    {/* Candidat */}
+                    {isCandidat && (
+                        <li><Link to="/dashboard" className={linkClass('/dashboard')}>Mon Espace</Link></li>
+                    )}
+
+                    {/* Admin Établissement / Coordinateur */}
+                    {isAdmin && (
+                        <li><Link to="/admin" className={linkClass('/admin')}>Administration</Link></li>
+                    )}
+
+                    {/* Super Admin */}
+                    {isSuperAdmin && (
+                        <li><Link to="/super-admin" className={linkClass('/super-admin')}>Super Admin</Link></li>
+                    )}
                 </ul>
 
-                {/* Actions */}
+                {/* Actions — auth-based */}
                 <div className="flex items-center gap-3">
-                    <Button to="/login" variant="ghost" size="sm">Connexion</Button>
-                    <Button to="/inscription" size="sm">S'inscrire</Button>
+                    {isAuthenticated ? (
+                        <>
+                            <span className="text-sm text-slate-400 hidden md:block">
+                                👤 {user.nom}
+                            </span>
+                            <Button variant="ghost" size="sm" onClick={logout}>Déconnexion</Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button to="/login" variant="ghost" size="sm">Connexion</Button>
+                            <Button to="/inscription" size="sm">S'inscrire</Button>
+                        </>
+                    )}
                 </div>
             </div>
         </nav>

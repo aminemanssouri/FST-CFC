@@ -1,14 +1,34 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Button, Input } from '../components/ui'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { Button, Input, Select } from '../components/ui'
+
+const roleOptions = [
+    { value: 'CANDIDAT', label: 'Candidat' },
+    { value: 'ADMIN_ETAB', label: 'Admin Établissement' },
+    { value: 'COORDINATEUR', label: 'Coordinateur' },
+    { value: 'SUPER_ADMIN', label: 'Super Admin' },
+]
+
+const roleRedirects = {
+    CANDIDAT: '/dashboard',
+    ADMIN_ETAB: '/admin',
+    COORDINATEUR: '/admin',
+    SUPER_ADMIN: '/super-admin',
+}
 
 export default function Login() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [role, setRole] = useState('CANDIDAT')
+    const { login } = useAuth()
+    const navigate = useNavigate()
 
     const handleSubmit = (e) => {
         e.preventDefault()
-        alert('Connexion en cours... (→ POST /api/auth/login)')
+        // Demo login — in production this would call POST /api/auth/login
+        login({ nom: email.split('@')[0] || 'Utilisateur', email, role })
+        navigate(roleRedirects[role])
     }
 
     return (
@@ -25,6 +45,7 @@ export default function Login() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <Input id="email" type="email" label="Adresse email" placeholder="votre@email.ma" value={email} onChange={(e) => setEmail(e.target.value)} required />
                     <Input id="password" type="password" label="Mot de passe" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Select id="role" label="Rôle (démo)" options={roleOptions} value={role} onChange={(e) => setRole(e.target.value)} />
                     <Button type="submit" full size="lg">Se connecter →</Button>
                 </form>
 
