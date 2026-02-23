@@ -35,131 +35,133 @@ export default function DashboardSuperAdmin() {
     const [tab, setTab] = useState('etablissements')
 
     return (
-        <div className="animate-fade-in">
-            <PageHeader title="🛡️ Super Administration" subtitle="Gestion globale des établissements et des administrateurs" />
+        <div className="animate-fade-in bg-slate-50 min-h-screen pb-12">
+            <PageHeader title="Super Administration" subtitle="Gestion globale des établissements et des administrateurs" />
 
-            <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
-                <Sidebar title="Super Admin" items={sidebarItems} active={tab} onSelect={setTab} />
+            <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-20">
+                <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
+                    <Sidebar title="Super Admin" items={sidebarItems} active={tab} onSelect={setTab} />
 
-                <main>
-                    {/* ── Établissements (UC1) ── */}
-                    {tab === 'etablissements' && (
-                        <div className="animate-fade-in">
-                            <div className="flex items-center justify-between mb-5">
-                                <h2 className="text-xl font-bold text-slate-800">🏛️ Gestion des Établissements</h2>
-                                <Button size="sm">+ Nouvel établissement</Button>
-                            </div>
+                    <main className="bg-white p-6 md:p-8 rounded-2xl shadow-sm min-h-[600px] border border-slate-200">
+                        {/* ── Établissements (UC1) ── */}
+                        {tab === 'etablissements' && (
+                            <div className="animate-fade-in">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-2xl font-bold text-brand-900 tracking-tight">Gestion des Établissements</h2>
+                                    <Button size="sm">+ Nouvel établissement</Button>
+                                </div>
 
-                            <Table columns={['Établissement', 'Code', 'Admin', 'Formations', 'Statut', 'Actions']}>
-                                {etablissements.map(e => (
-                                    <TableRow key={e.id}>
-                                        <TableCell bold>{e.nom}</TableCell>
-                                        <TableCell>{e.code}</TableCell>
-                                        <TableCell>{e.admin}</TableCell>
-                                        <TableCell bold>{e.formations}</TableCell>
-                                        <TableCell>
-                                            <Badge color={e.statut === 'active' ? 'green' : 'gray'}>
-                                                {e.statut === 'active' ? 'Actif' : 'Inactif'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex gap-2">
-                                                <Button variant="subtle" size="sm">Modifier</Button>
-                                                <Button variant="danger" size="sm">Désactiver</Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </Table>
-                        </div>
-                    )}
-
-                    {/* ── Admins (UC1) ── */}{/**dasdasdasdas */}
-                    {tab === 'admins' && (
-                        <div className="animate-fade-in">
-                            <div className="flex items-center justify-between mb-5">
-                                <h2 className="text-xl font-bold text-slate-800">👥 Gestion des Administrateurs</h2>
-                                <Button size="sm">+ Nouvel administrateur</Button>
-                            </div>
-
-                            <Table columns={['Nom', 'Email', 'Rôle', 'Établissement', 'Statut', 'Actions']}>
-                                {admins.map(a => {
-                                    const { label, color } = roleConfig[a.role]
-                                    return (
-                                        <TableRow key={a.id}>
-                                            <TableCell bold>{a.nom}</TableCell>
-                                            <TableCell>{a.email}</TableCell>
-                                            <TableCell><Badge color={color}>{label}</Badge></TableCell>
-                                            <TableCell>{a.etablissement}</TableCell>
+                                <Table columns={['Établissement', 'Code', 'Admin', 'Formations', 'Statut', 'Actions']}>
+                                    {etablissements.map(e => (
+                                        <TableRow key={e.id}>
+                                            <TableCell bold>{e.nom}</TableCell>
+                                            <TableCell>{e.code}</TableCell>
+                                            <TableCell>{e.admin}</TableCell>
+                                            <TableCell bold>{e.formations}</TableCell>
                                             <TableCell>
-                                                <Badge color={a.statut === 'active' ? 'green' : 'gray'}>
-                                                    {a.statut === 'active' ? 'Actif' : 'Inactif'}
+                                                <Badge color={e.statut === 'active' ? 'green' : 'gray'}>
+                                                    {e.statut === 'active' ? 'Actif' : 'Inactif'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
                                                     <Button variant="subtle" size="sm">Modifier</Button>
-                                                    <Button variant="danger" size="sm">Supprimer</Button>
+                                                    <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">Désactiver</Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    )
-                                })}
-                            </Table>
-                        </div>
-                    )}
+                                    ))}
+                                </Table>
+                            </div>
+                        )}
 
-                    {/* ── Configuration (UC2) ── */}
-                    {tab === 'config' && (
-                        <div className="animate-fade-in">
-                            <h2 className="text-xl font-bold text-slate-800 mb-5">⚙️ Configurations Globales</h2>
+                        {/* ── Admins (UC1) ── */}
+                        {tab === 'admins' && (
+                            <div className="animate-fade-in">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-2xl font-bold text-brand-900 tracking-tight">Gestion des Administrateurs</h2>
+                                    <Button size="sm">+ Nouvel administrateur</Button>
+                                </div>
 
-                            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-5">
-                                <Input label="Nom de la plateforme" value="Centre de Formation Continue — USMS" readOnly />
-                                <Input label="Email de contact" value="cfc@usms.ma" readOnly />
-                                <Input label="Clé JWT (Secret)" type="password" value="••••••••••••••••" readOnly />
-                                <div className="flex gap-3 pt-2">
-                                    <Button>💾 Enregistrer</Button>
-                                    <Button variant="outline">Réinitialiser</Button>
+                                <Table columns={['Nom', 'Email', 'Rôle', 'Établissement', 'Statut', 'Actions']}>
+                                    {admins.map(a => {
+                                        const { label, color } = roleConfig[a.role]
+                                        return (
+                                            <TableRow key={a.id}>
+                                                <TableCell bold>{a.nom}</TableCell>
+                                                <TableCell>{a.email}</TableCell>
+                                                <TableCell><Badge color={color}>{label}</Badge></TableCell>
+                                                <TableCell>{a.etablissement}</TableCell>
+                                                <TableCell>
+                                                    <Badge color={a.statut === 'active' ? 'green' : 'gray'}>
+                                                        {a.statut === 'active' ? 'Actif' : 'Inactif'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-2">
+                                                        <Button variant="subtle" size="sm">Modifier</Button>
+                                                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">Supprimer</Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </Table>
+                            </div>
+                        )}
+
+                        {/* ── Configuration (UC2) ── */}
+                        {tab === 'config' && (
+                            <div className="animate-fade-in">
+                                <h2 className="text-2xl font-bold text-brand-900 mb-8">Configurations Globales</h2>
+
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 shadow-sm space-y-5 max-w-2xl">
+                                    <Input label="Nom de la plateforme" value="Centre de Formation Continue — USMS" readOnly />
+                                    <Input label="Email de contact" value="cfc@usms.ma" readOnly />
+                                    <Input label="Clé JWT (Secret)" type="password" value="••••••••••••••••" readOnly />
+                                    <div className="flex gap-3 pt-4 border-t border-slate-200">
+                                        <Button>💾 Enregistrer</Button>
+                                        <Button variant="outline">Réinitialiser</Button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* ── Reporting (UC3) ── */}
-                    {tab === 'reporting' && (
-                        <div className="animate-fade-in">
-                            <h2 className="text-xl font-bold text-slate-800 mb-5">📊 Reporting Global</h2>
+                        {/* ── Reporting (UC3) ── */}
+                        {tab === 'reporting' && (
+                            <div className="animate-fade-in">
+                                <h2 className="text-2xl font-bold text-brand-900 mb-8">Reporting Global</h2>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-                                <StatCard value="6" label="Établissements" color="brand" />
-                                <StatCard value="94" label="Formations totales" color="accent" />
-                                <StatCard value="350" label="Candidatures 2026" color="amber" />
-                                <StatCard value="1200" label="Lauréats cumulés" color="brand" />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                                    <StatCard value="6" label="Établissements" color="brand" />
+                                    <StatCard value="94" label="Formations totales" color="accent" />
+                                    <StatCard value="350" label="Candidatures 2026" color="amber" />
+                                    <StatCard value="1200" label="Lauréats cumulés" color="brand" />
+                                </div>
+
+                                <h3 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Détails par Établissement</h3>
+                                <Table columns={['Établissement', 'Formations', 'Candidatures', 'Acceptées', 'Taux']}>
+                                    {etablissements.filter(e => e.statut === 'active').map(e => {
+                                        const cands = Math.floor(Math.random() * 80) + 20
+                                        const accepted = Math.floor(cands * (0.5 + Math.random() * 0.3))
+                                        const rate = Math.round((accepted / cands) * 100)
+                                        return (
+                                            <TableRow key={e.id}>
+                                                <TableCell bold>{e.nom}</TableCell>
+                                                <TableCell>{e.formations}</TableCell>
+                                                <TableCell>{cands}</TableCell>
+                                                <TableCell>{accepted}</TableCell>
+                                                <TableCell>
+                                                    <Badge color={rate > 70 ? 'green' : rate > 50 ? 'yellow' : 'red'}>{rate}%</Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </Table>
                             </div>
-
-                            <h3 className="text-lg font-bold text-slate-800 mb-3">Par Établissement</h3>
-                            <Table columns={['Établissement', 'Formations', 'Candidatures', 'Acceptées', 'Taux']}>
-                                {etablissements.filter(e => e.statut === 'active').map(e => {
-                                    const cands = Math.floor(Math.random() * 80) + 20
-                                    const accepted = Math.floor(cands * (0.5 + Math.random() * 0.3))
-                                    const rate = Math.round((accepted / cands) * 100)
-                                    return (
-                                        <TableRow key={e.id}>
-                                            <TableCell bold>{e.nom}</TableCell>
-                                            <TableCell>{e.formations}</TableCell>
-                                            <TableCell>{cands}</TableCell>
-                                            <TableCell>{accepted}</TableCell>
-                                            <TableCell>
-                                                <Badge color={rate > 70 ? 'green' : rate > 50 ? 'yellow' : 'red'}>{rate}%</Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </Table>
-                        </div>
-                    )}
-                </main>
+                        )}
+                    </main>
+                </div>
             </div>
         </div>
     )

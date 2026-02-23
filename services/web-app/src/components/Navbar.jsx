@@ -11,15 +11,15 @@ export default function Navbar() {
     const isActive = (path) => location.pathname === path
 
     const linkClass = (path) =>
-        `relative py-1 text-sm font-medium transition-all duration-300 ${isActive(path)
-            ? 'text-white after:absolute after:-bottom-0.5 after:left-0 after:w-full after:h-0.5 after:bg-brand-400'
-            : 'text-slate-400 hover:text-white'
+        `relative py-1 text-sm font-bold tracking-wider uppercase transition-all duration-300 ${isActive(path)
+            ? 'text-brand-600 after:absolute after:-bottom-1.5 after:left-0 after:w-full after:h-1 after:bg-primary-500 after:rounded-t-sm'
+            : 'text-slate-600 hover:text-brand-600'
         }`
 
     const mobileLinkClass = (path) =>
-        `block px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive(path)
-            ? 'bg-brand-600/20 text-brand-400'
-            : 'text-slate-300 hover:bg-white/5 hover:text-white'
+        `block px-4 py-3 rounded-xl text-sm font-bold tracking-wider uppercase transition-all duration-300 ${isActive(path)
+            ? 'bg-brand-50 text-brand-600 border border-brand-200'
+            : 'text-slate-600 hover:bg-slate-50 hover:text-brand-600'
         }`
 
     const links = [
@@ -31,15 +31,15 @@ export default function Navbar() {
     ]
 
     return (
-        <nav className="sticky top-0 z-50 bg-brand-900/95 backdrop-blur-xl border-b border-white/[0.08]">
-            <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-[72px]">
+        <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+            <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-[80px]">
                 {/* Logo */}
-                <Link to="/" className="flex items-center gap-3 group" onClick={() => setMobileOpen(false)}>
-                    <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-accent-500 rounded-xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg group-hover:scale-105 transition-transform">
-                        CFC
+                <Link to="/" className="flex items-center gap-3.5 group" onClick={() => setMobileOpen(false)}>
+                    <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm group-hover:bg-brand-700 transition-all duration-300">
+                        <span className="text-xl">CFC</span>
                     </div>
-                    <span className="text-white font-bold text-lg hidden md:block">
-                        Centre de Formation Continue
+                    <span className="text-brand-800 font-bold text-lg hidden md:block tracking-tight border-l-2 border-slate-200 pl-3 ml-1">
+                        USMS
                     </span>
                 </Link>
 
@@ -51,13 +51,14 @@ export default function Navbar() {
                 </ul>
 
                 {/* Desktop Actions */}
-                <div className="hidden lg:flex items-center gap-3">
+                <div className="hidden lg:flex items-center gap-4">
                     {isAuthenticated ? (
                         <>
-                            <Link to="/profil" className="text-sm text-slate-400 hover:text-white transition-colors">
-                                👤 {user.nom}
+                            <Link to="/profil" className="text-sm font-bold tracking-wider uppercase text-slate-600 hover:text-brand-600 transition-colors flex items-center gap-2">
+                                <span className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs">👤</span>
+                                {user.nom}
                             </Link>
-                            <Button variant="ghost" size="sm" onClick={logout}>Déconnexion</Button>
+                            <Button variant="outline" size="sm" onClick={logout}>Déconnexion</Button>
                         </>
                     ) : (
                         <>
@@ -69,40 +70,40 @@ export default function Navbar() {
 
                 {/* Mobile Hamburger */}
                 <button
-                    className="lg:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5"
+                    className="lg:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5 focus:outline-none"
                     onClick={() => setMobileOpen(!mobileOpen)}
                 >
-                    <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
-                    <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${mobileOpen ? 'opacity-0' : ''}`} />
-                    <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+                    <span className={`block w-6 h-0.5 rounded-full bg-slate-800 transition-all duration-300 ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
+                    <span className={`block w-6 h-0.5 rounded-full bg-slate-800 transition-all duration-300 ${mobileOpen ? 'opacity-0' : ''}`} />
+                    <span className={`block w-6 h-0.5 rounded-full bg-slate-800 transition-all duration-300 ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
                 </button>
             </div>
 
             {/* Mobile Menu */}
             {mobileOpen && (
-                <div className="lg:hidden bg-brand-900 border-t border-white/[0.06] animate-fade-in">
-                    <div className="px-4 py-4 space-y-1">
+                <div className="lg:hidden bg-white border-b border-slate-200 absolute w-full left-0 shadow-lg pb-4">
+                    <div className="px-5 py-4 space-y-2">
                         {links.filter(l => l.show).map(l => (
                             <Link key={l.to} to={l.to} className={mobileLinkClass(l.to)} onClick={() => setMobileOpen(false)}>
                                 {l.label}
                             </Link>
                         ))}
 
-                        <div className="border-t border-white/10 pt-3 mt-3 space-y-1">
+                        <div className="border-t border-slate-200 pt-4 mt-4 space-y-2">
                             {isAuthenticated ? (
                                 <>
                                     <Link to="/profil" className={mobileLinkClass('/profil')} onClick={() => setMobileOpen(false)}>
-                                        ⚙️ Mon Profil
+                                        👤 Mon Profil
                                     </Link>
-                                    <button onClick={() => { logout(); setMobileOpen(false) }} className="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all">
+                                    <button onClick={() => { logout(); setMobileOpen(false) }} className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold tracking-wider uppercase text-rose-600 hover:bg-rose-50 border border-transparent transition-all">
                                         🚪 Déconnexion
                                     </button>
                                 </>
                             ) : (
-                                <>
-                                    <Link to="/login" className={mobileLinkClass('/login')} onClick={() => setMobileOpen(false)}>Connexion</Link>
-                                    <Link to="/inscription" className={mobileLinkClass('/inscription')} onClick={() => setMobileOpen(false)}>S'inscrire</Link>
-                                </>
+                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                    <Button to="/login" variant="ghost" full size="sm" onClick={() => setMobileOpen(false)}>Connexion</Button>
+                                    <Button to="/inscription" full size="sm" onClick={() => setMobileOpen(false)}>S'inscrire</Button>
+                                </div>
                             )}
                         </div>
                     </div>

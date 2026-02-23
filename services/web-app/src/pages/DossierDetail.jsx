@@ -41,7 +41,7 @@ const dossiers = {
 }
 
 const etatConfig = {
-    DOSSIER_SOUMIS: { label: 'Dossier soumis', color: 'blue' },
+    DOSSIER_SOUMIS: { label: 'Dossier soumis', color: 'indigo' },
     EN_VALIDATION: { label: 'En validation', color: 'yellow' },
     ACCEPTE: { label: 'Accepté', color: 'green' },
     REFUSE: { label: 'Refusé', color: 'red' },
@@ -72,79 +72,114 @@ export default function DossierDetail() {
     }
 
     return (
-        <div className="animate-fade-in">
-            <PageHeader title={`📋 Dossier #${id}`} subtitle={`${d.candidat.nom} — ${d.formation}`}>
-                <Badge color={color} className="mb-3">{label}</Badge>
+        <div className="animate-fade-in bg-slate-50 min-h-screen pb-12">
+            <PageHeader title={`Dossier #${id}`} subtitle={`${d.candidat.nom} — ${d.formation}`}>
+                <div className="mt-4">
+                    <Badge color={color} className="px-4 py-1.5 text-sm shadow-sm">{label}</Badge>
+                </div>
             </PageHeader>
 
-            <div className="max-w-5xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left: Candidat info + Documents */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card hover={false} className="p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">👤 Informations du Candidat</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                            {[
-                                ['Nom complet', d.candidat.nom],
-                                ['Email', d.candidat.email],
-                                ['Téléphone', d.candidat.telephone],
-                                ['Diplôme', d.candidat.diplome],
-                                ['Année', d.candidat.annee],
-                                ['Formation', d.formation],
-                            ].map(([l, v]) => (
-                                <div key={l} className="flex flex-col">
-                                    <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">{l}</span>
-                                    <span className="font-semibold text-slate-700 mt-0.5">{v}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
+            <div className="max-w-6xl mx-auto px-6 -mt-8 relative z-20">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
-                    <Card hover={false} className="p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">📎 Documents ({d.documents.length})</h3>
-                        <div className="space-y-2">
-                            {d.documents.map((doc, i) => (
-                                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <span className="text-xl">{docIcons[doc.type] || '📄'}</span>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold text-slate-700">{doc.nom}</p>
-                                        <p className="text-xs text-slate-400">{doc.type} · {doc.taille} · {doc.date}</p>
+                    {/* Left: Candidat info + Documents */}
+                    <div className="lg:col-span-2 space-y-8">
+                        <Card className="p-8 pb-10 border-slate-200">
+                            <h3 className="text-xl font-bold text-brand-900 tracking-tight mb-6 pb-4 border-b border-slate-100 flex items-center gap-3">
+                                <span className="w-10 h-10 rounded-xl bg-slate-100 text-brand-600 flex items-center justify-center text-lg">👤</span>
+                                Informations du Candidat
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8 text-sm">
+                                {[
+                                    ['Nom complet', d.candidat.nom],
+                                    ['Email', d.candidat.email],
+                                    ['Téléphone mobile', d.candidat.telephone],
+                                    ['Dernier diplôme', d.candidat.diplome],
+                                    ['Année d\'obtention', d.candidat.annee],
+                                    ['Programme visé', d.formation],
+                                ].map(([l, v], i) => (
+                                    <div key={l} className="flex flex-col">
+                                        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest pl-1 mb-1">{l}</span>
+                                        <div className="bg-slate-50 px-4 py-2.5 rounded border border-slate-200 font-medium text-slate-800">
+                                            {v}
+                                        </div>
                                     </div>
-                                    <Button variant="outline" size="sm">Télécharger</Button>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Right: Actions + Historique */}
-                <div className="space-y-6">
-                    {canDecide && (
-                        <Card hover={false} className="p-6">
-                            <h3 className="font-bold text-slate-800 mb-4">⚖️ Décision</h3>
-                            <div className="space-y-3">
-                                <Button full variant="accent" onClick={() => handleDecision('accept')}>✅ Accepter le dossier</Button>
-                                <Button full variant="danger" onClick={() => handleDecision('refuse')}>❌ Refuser le dossier</Button>
+                                ))}
                             </div>
                         </Card>
-                    )}
 
-                    <Card hover={false} className="p-6">
-                        <h3 className="font-bold text-slate-800 mb-4">📜 Historique</h3>
-                        <div className="space-y-3">
-                            {d.historique.map((h, i) => (
-                                <div key={i} className="relative pl-5 border-l-2 border-slate-200 pb-3 last:pb-0">
-                                    <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-brand-600" />
-                                    <p className="text-sm font-medium text-slate-700">{h.action}</p>
-                                    <p className="text-xs text-slate-400">{h.date} · {h.par}</p>
+                        <Card className="p-8 border-slate-200">
+                            <h3 className="text-xl font-bold text-brand-900 tracking-tight mb-6 pb-4 border-b border-slate-100 flex items-center gap-3">
+                                <span className="w-10 h-10 rounded-xl bg-slate-100 text-amber-600 flex items-center justify-center text-lg">📎</span>
+                                Pièces Justificatives ({d.documents.length})
+                            </h3>
+                            <div className="space-y-3">
+                                {d.documents.map((doc, i) => (
+                                    <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl hover:bg-white transition-all duration-300">
+                                        <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl border border-slate-200 shrink-0">
+                                            {docIcons[doc.type] || '📄'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-slate-800 truncate">{doc.nom}</p>
+                                            <p className="text-xs font-medium text-slate-500 mt-0.5">Type: {doc.type} · Taille: {doc.taille} · Uploadé le {doc.date}</p>
+                                        </div>
+                                        <Button variant="outline" size="sm" className="bg-white shrink-0">Télécharger ↓</Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Right: Actions + Historique */}
+                    <div className="space-y-8 lg:sticky lg:top-24">
+
+                        {canDecide && (
+                            <Card className="p-8 border-slate-200 bg-white">
+                                <h3 className="text-lg font-bold text-brand-900 tracking-tight mb-6 pb-3 border-b border-slate-200 flex items-center gap-2">
+                                    <span className="text-2xl">⚖️</span> Décision du Jury
+                                </h3>
+                                <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                                    Veuillez examiner attentivement les pièces justificatives avant de prendre une décision finale.
+                                </p>
+                                <div className="space-y-3">
+                                    <Button full size="lg" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleDecision('accept')}>
+                                        ✓ Accepter la candidature
+                                    </Button>
+                                    <Button full size="lg" variant="outline" className="text-red-700 border-red-200 hover:bg-red-50" onClick={() => handleDecision('refuse')}>
+                                        ✕ Rejeter la candidature
+                                    </Button>
                                 </div>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
-            </div>
+                            </Card>
+                        )}
 
-            <div className="text-center pb-8">
-                <Link to="/admin" className="text-brand-600 font-semibold hover:underline">← Retour à l'administration</Link>
+                        <Card className="p-8 border-slate-200">
+                            <h3 className="text-lg font-bold text-brand-900 tracking-tight mb-6 pb-3 border-b border-slate-100 flex items-center gap-2">
+                                <span className="text-xl">📜</span> Historique d'Activité
+                            </h3>
+                            <div className="space-y-5">
+                                {d.historique.map((h, i) => (
+                                    <div key={i} className="relative pl-6 pb-1">
+                                        {/* Vertical line connecting timeline items, except for the last one */}
+                                        {i !== d.historique.length - 1 && (
+                                            <div className="absolute left-[5px] top-3 bottom-[-1.25rem] w-px bg-slate-200" />
+                                        )}
+                                        {/* Timeline dot */}
+                                        <div className="absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full bg-slate-800 ring-4 ring-slate-100" />
+
+                                        <p className="text-sm font-bold text-slate-800">{h.action}</p>
+                                        <p className="text-xs font-medium text-slate-500 mt-1">{h.date} · par <span className="text-brand-600">{h.par}</span></p>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+
+                <div className="text-center mt-12 mb-8">
+                    <Link to="/admin" className="inline-flex items-center justify-center px-6 py-3 rounded text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-brand-700 transition-all">
+                        ← Retourner à la liste des dossiers
+                    </Link>
+                </div>
             </div>
         </div>
     )

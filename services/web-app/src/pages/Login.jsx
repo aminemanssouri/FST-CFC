@@ -33,12 +33,12 @@ export default function Login() {
 
     return (
         <div className="min-h-[calc(100vh-72px)] bg-slate-50 flex items-center justify-center px-6 py-12 animate-fade-in">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-brand-600 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-600/20">
-                        <span className="text-3xl">🔐</span>
+                    <div className="w-16 h-16 bg-brand-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                        <span className="text-3xl font-bold tracking-tight text-white uppercase">CFC</span>
                     </div>
-                    <h2 className="text-2xl font-extrabold text-slate-900">Connexion</h2>
+                    <h2 className="text-2xl font-extrabold text-brand-900 tracking-tight">Connexion</h2>
                     <p className="text-slate-500 mt-1">Accédez à votre espace personnel</p>
                 </div>
 
@@ -51,7 +51,7 @@ export default function Login() {
 
                 <p className="text-center mt-6 text-sm text-slate-500">
                     Pas encore de compte ?{' '}
-                    <Link to="/inscription" className="text-brand-600 font-semibold hover:underline">S'inscrire</Link>
+                    <Link to="/inscription" className="text-brand-600 font-bold hover:underline">S'inscrire</Link>
                 </p>
             </div>
         </div>

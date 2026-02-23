@@ -24,8 +24,8 @@ const dateFields = (f) => [
 
 const InfoRow = ({ label, value }) => (
     <div className="flex justify-between items-center py-2">
-        <span className="text-sm text-slate-500">{label}</span>
-        <span className="text-sm font-semibold text-slate-800">{value}</span>
+        <span className="text-sm text-slate-500 font-medium">{label}</span>
+        <span className="text-sm font-bold text-slate-800">{value}</span>
     </div>
 )
 
@@ -38,13 +38,13 @@ export default function FormationDetail() {
             <div className="text-center py-24 animate-fade-in">
                 <p className="text-5xl mb-4">📭</p>
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Formation non trouvée</h2>
-                <Link to="/catalogue" className="text-brand-600 font-semibold hover:underline">← Retour au catalogue</Link>
+                <Link to="/catalogue" className="text-brand-600 font-bold hover:underline">← Retour au catalogue</Link>
             </div>
         )
     }
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in bg-slate-50 min-h-screen pb-10">
             <PageHeader title={f.titre} subtitle={`🏛️ ${f.etablissement} — Coordinateur : ${f.coordinateur}`}>
                 <Badge color={f.inscriptions ? 'green' : 'red'} className="mb-4">
                     {f.inscriptions ? '✅ Inscriptions ouvertes' : '⛔ Inscriptions fermées'}
@@ -53,25 +53,28 @@ export default function FormationDetail() {
 
             <div className="max-w-5xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-3">
-                    <Card hover={false} className="p-8">
-                        <h2 className="text-xl font-bold mb-4">📝 Description</h2>
+                    <Card className="p-8 border-slate-200">
+                        <h2 className="text-xl font-bold text-brand-900 mb-4 uppercase tracking-widest text-sm border-b border-slate-100 pb-2">📝 Description</h2>
                         <p className="text-slate-600 leading-relaxed">{f.description}</p>
                     </Card>
                 </div>
 
                 <div className="lg:col-span-2">
-                    <Card hover={false} className="p-6 sticky top-24">
-                        <h3 className="font-bold text-lg mb-5">ℹ️ Informations</h3>
-                        <div className="divide-y divide-slate-100">
-                            {infoFields(f).map(row => <InfoRow key={row.label} {...row} />)}
+                    <Card className="p-6 sticky top-24 border-slate-200 flex flex-col gap-4">
+                        <div>
+                            <h3 className="font-bold text-brand-900 mb-4 uppercase tracking-widest text-sm border-b border-slate-100 pb-2">ℹ️ Informations</h3>
+                            <div className="divide-y divide-slate-100">
+                                {infoFields(f).map(row => <InfoRow key={row.label} {...row} />)}
+                            </div>
                         </div>
-                        <div className="my-5 h-px bg-slate-200" />
-                        <div className="divide-y divide-slate-100">
-                            {dateFields(f).map(row => <InfoRow key={row.label} {...row} />)}
+                        <div>
+                            <div className="divide-y divide-slate-100">
+                                {dateFields(f).map(row => <InfoRow key={row.label} {...row} />)}
+                            </div>
                         </div>
-                        <div className="mt-6">
+                        <div className="mt-4">
                             {f.inscriptions ? (
-                                <Button to="/inscription" full>✏️ Postuler maintenant</Button>
+                                <Button to="/inscription" variant="accent" full>✏️ Postuler maintenant</Button>
                             ) : (
                                 <Button variant="outline" full disabled>⛔ Inscriptions fermées</Button>
                             )}
@@ -80,8 +83,8 @@ export default function FormationDetail() {
                 </div>
             </div>
 
-            <div className="text-center pb-10">
-                <Link to="/catalogue" className="text-brand-600 font-semibold hover:underline">← Retour au catalogue</Link>
+            <div className="text-center">
+                <Link to="/catalogue" className="text-brand-600 font-bold hover:underline">← Retour au catalogue</Link>
             </div>
         </div>
     )

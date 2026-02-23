@@ -1,8 +1,9 @@
-export default function Card({ children, hover = true, className = '', ...props }) {
+export default function Card({ children, hover = true, glass = false, className = '', ...props }) {
+    const baseStyle = 'bg-white rounded-xl border border-slate-200 shadow-sm'
+
     return (
         <div
-            className={`bg-white rounded-xl border border-slate-200 transition-all duration-300 ${hover ? 'hover:-translate-y-1 hover:shadow-lg hover:border-brand-400' : ''
-                } ${className}`}
+            className={`${baseStyle} transition-all duration-300 ${hover ? 'hover:-translate-y-1 hover:shadow-md' : ''} ${className}`}
             {...props}
         >
             {children}
