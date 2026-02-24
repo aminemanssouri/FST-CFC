@@ -1,0 +1,279 @@
+services:
+  # ─── API Gateway (Nginx) ──────────────────────────────────────────
+  api-gateway:
+    build: ./services/gateway
+    ports:
+      - "3001:80"
+    depends_on:
+      - auth-service
+      - institution-service
+      - application-service
+      - document-service
+      - reporting-analytics
+    networks:
+      - cfc-network
+
+  # ─── Auth Service (Laravel/PHP) ───────────────────────────────────
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "8001:8000"
+    environment:
+      APP_ENV: local
+      APP_KEY: ${AUTH_APP_KEY:-base64:Upl7KP4FHvOFhboxQmEWgPWBAzMtr49xEBaatZ/IJ9k=}
+      APP_URL: http://localhost:8001
+      DB_CONNECTION: pgsql
+      DB_HOST: auth-db
+      DB_PORT: 5432
+      DB_DATABASE: auth_db
+      DB_USERNAME: auth_user
+      DB_PASSWORD: auth_pass
+      INSTITUTION_SERVICE_URL: http://institution-service:8000
+      APPLICATION_SERVICE_URL: http://application-service:3004
+    depends_on:
+      - auth-db
+    networks:
+      - cfc-network
+
+  auth-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - cfc-network
+
+  # ─── Institution Service (Laravel/PHP) ────────────────────────────
+  institution-service:
+    build: ./services/institution-service
+    ports:
+      - "8002:8000"
+    environment:
+      APP_ENV: local
+      APP_KEY: ${INSTITUTION_APP_KEY:-base64:iM9QOzY5MM6YU+QdtnzK8kGq2tOkRBNWoe2iexN9KR4=}
+      APP_URL: http://localhost:8002
+      DB_CONNECTION: pgsql
+      DB_HOST: institution-db
+      DB_PORT: 5432
+      DB_DATABASE: institution_db
+      DB_USERNAME: institution_user
+      DB_PASSWORD: institution_pass
+      AUTH_SERVICE_URL: http://auth-service:8000
+      APPLICATION_SERVICE_URL: http://application-service:3004
+    depends_on:
+      - institution-db
+    networks:
+      - cfc-network
+
+  institution-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: institution_db
+      POSTGRES_USER: institution_user
+      POSTGRES_PASSWORD: institution_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - institution_db_data:/var/lib/postgresql/data
+    networks:
+      - cfc-network
+
+  # ─── Application Service (Go) ─────────────────────────────────────
+  application-service:
+    build: ./services/application-service
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      DB_HOST: application-db
+      DB_PORT: 5432
+      DB_USER: application_user
+      DB_PASSWORD: application_pass
+      DB_NAME: application_db
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET:-changeme-super-secret-key}
+      AUTH_SERVICE_URL: http://auth-service:8000
+      INSTITUTION_SERVICE_URL: http://institution-service:8000
+    depends_on:
+      - application-db
+    networks:
+      - cfc-network
+
+  application-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: application_db
+      POSTGRES_USER: application_user
+      POSTGRES_PASSWORD: application_pass
+    ports:
+      - "5437:5432"
+    volumes:
+      - application_db_data:/var/lib/postgresql/data
+    networks:
+      - cfc-network
+
+  # ─── Program Service (Go) ─────────────────────────────────────────
+  program-service:
+    build: ./services/program-service
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      DB_HOST: program-db
+      DB_PORT: 5432
+      DB_USER: program_user
+      DB_PASSWORD: program_pass
+      DB_NAME: program_db
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET:-changeme-super-secret-key}
+    depends_on:
+      - program-db
+    networks:
+      - cfc-network
+
+  program-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: program_db
+      POSTGRES_USER: program_user
+      POSTGRES_PASSWORD: program_pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - program_db_data:/var/lib/postgresql/data
+    networks:
+      - cfc-network
+
+  # ─── Document Service (Go) ────────────────────────────────────────
+  document-service:
+    build: ./services/document-service
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      DB_HOST: document-db
+      DB_PORT: 5432
+      DB_USER: document_user
+      DB_PASSWORD: document_pass
+      DB_NAME: document_db
+      DB_SSLMODE: disable
+      S3_ENDPOINT: minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: documents
+      S3_USE_SSL: "false"
+      PRESIGN_EXPIRY_MINUTES: 15
+      JWT_SECRET: ${JWT_SECRET:-changeme-super-secret-key}
+    depends_on:
+      - document-db
+      - minio
+    networks:
+      - cfc-network
+
+  document-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: document_db
+      POSTGRES_USER: document_user
+      POSTGRES_PASSWORD: document_pass
+    ports:
+      - "5436:5432"
+    volumes:
+      - document_db_data:/var/lib/postgresql/data
+      - ./services/document-service/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - cfc-network
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - cfc-network
+
+  # ─── Notification Service (NestJS/TypeScript) ─────────────────────
+  notification-service:
+    build: ./services/notification-service
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+    networks:
+      - cfc-network
+
+  # ─── Reporting Analytics Service (Node/TypeScript) ────────────────
+  reporting-analytics:
+    build: ./services/reporting-analytics
+    ports:
+      - "3010:3010"
+    environment:
+      PORT: 3010
+      MONGO_URI: mongodb://mongo:27017
+      DB_NAME: cfc_reporting
+    depends_on:
+      - mongo
+    networks:
+      - cfc-network
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cfc-network
+
+  # ─── Scheduler Job Service (Node/TypeScript) ──────────────────────
+  scheduler-job:
+    build: ./services/scheduler-job
+    ports:
+      - "3020:3020"
+    environment:
+      PORT: 3020
+      PROGRAM_SERVICE_BASE_URL: http://institution-service:8000
+      APPLICATION_SERVICE_BASE_URL: http://application-service:3004
+      NOTIFICATION_SERVICE_BASE_URL: http://notification-service:3003
+      JOB_INTERVAL_SECONDS: 3600
+    depends_on:
+      - institution-service
+      - application-service
+    networks:
+      - cfc-network
+
+  # ─── Web App (React/Vite) ─────────────────────────────────────────
+  web-app:
+    build: ./services/web-app
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_GATEWAY_URL: http://api-gateway
+    depends_on:
+      - api-gateway
+    networks:
+      - cfc-network
+
+networks:
+  cfc-network:
+    driver: bridge
+
+volumes:
+  auth_db_data:
+  institution_db_data:
+  application_db_data:
+  program_db_data:
+  document_db_data:
+  minio_data:
+  mongo_data:
