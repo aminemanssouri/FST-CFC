@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\JwtService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -31,11 +32,13 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
+        $jwt = JwtService::generateToken($user);
 
         return response()->json([
             'message' => 'Registration successful',
             'user' => $user,
             'token' => $token,
+            'jwt' => $jwt,
         ], 201);
     }
 
@@ -64,11 +67,13 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
+        $jwt = JwtService::generateToken($user);
 
         return response()->json([
             'message' => 'Login successful',
             'user' => $user,
             'token' => $token,
+            'jwt' => $jwt,
         ]);
     }
 

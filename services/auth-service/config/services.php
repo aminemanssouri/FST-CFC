@@ -41,6 +41,11 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    'jwt' => [
+        'secret' => env('JWT_SECRET', 'changeme-super-secret-key'),
+        'ttl' => env('JWT_TTL_MINUTES', 1440),
+    ],
+
     'institution' => [
         'url' => env('INSTITUTION_SERVICE_URL', 'http://institution-service:8000'),
     ],

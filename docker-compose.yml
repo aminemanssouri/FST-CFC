@@ -28,6 +28,7 @@ services:
       DB_DATABASE: auth_db
       DB_USERNAME: auth_user
       DB_PASSWORD: auth_pass
+      JWT_SECRET: ${JWT_SECRET:-changeme-super-secret-key}
       INSTITUTION_SERVICE_URL: http://institution-service:8000
       APPLICATION_SERVICE_URL: http://application-service:3005
     depends_on:
