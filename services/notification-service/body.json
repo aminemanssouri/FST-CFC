@@ -1,0 +1,11 @@
+
+
+{
+  "templateKey": "welcome",
+  "language": "fr",
+  "recipient": "aminemanssouri666@gmail.com",
+  "payload": {
+    "firstName": "Amine",
+    "appName": "FST-CFC"
+  }
+}

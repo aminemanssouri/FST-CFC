@@ -1,0 +1,28 @@
+{
+  "name": "reporting-analytics-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reporting / Analytics Service - Express + TypeScript",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "start:dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "lint": "echo 'TODO lint'",
+    "test": "echo 'TODO tests'",
+    "test:example": "ts-node src/example.ts",
+    "test:mongo": "ts-node src/test-mongo.ts"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "mongodb": "^6.5.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.30",
+    "@types/cors": "^2.8.17",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}

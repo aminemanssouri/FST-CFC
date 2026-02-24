@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import amqp from 'amqplib';
+import * as amqp from 'amqplib';
 
 @Injectable()
 export class RabbitMqService implements OnModuleDestroy {
@@ -13,7 +13,7 @@ export class RabbitMqService implements OnModuleDestroy {
     const uri = process.env.RABBITMQ_URI;
     if (!uri) throw new Error('RABBITMQ_URI is not set');
 
-    this.connection = await (amqp as any).connect(uri);
+    this.connection = await amqp.connect(uri);
     this.channel = await this.connection.createChannel();
 
     const exchange = process.env.RABBITMQ_EXCHANGE ?? 'notifications';

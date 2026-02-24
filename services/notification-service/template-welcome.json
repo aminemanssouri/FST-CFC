@@ -1,0 +1,7 @@
+{
+  "key": "welcome",
+  "channel": "email",
+  "language": "fr",
+  "subjectTemplate": "Bienvenue, {{name}} !",
+  "bodyTemplate": "Bonjour {{name}},\n\nBienvenue sur FST-CFC.\n\nCeci est un email de test."
+}

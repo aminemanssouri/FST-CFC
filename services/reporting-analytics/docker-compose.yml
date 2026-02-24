@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: cfc-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: cfc_reporting
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - cfc-network
+
+  # Reporting Analytics Service
+  reporting-analytics:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cfc-reporting-analytics
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3010
+      MONGO_URI: mongodb://admin:password@mongodb:27017
+      DB_NAME: cfc_reporting
+    ports:
+      - "3011:3010"
+    depends_on:
+      - mongodb
+    networks:
+      - cfc-network
+    healthcheck:
+      test: ["CMD", "node", "dist/index.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  cfc-network:
+    driver: bridge
