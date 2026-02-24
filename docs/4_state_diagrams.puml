@@ -1,0 +1,47 @@
+@startuml
+title State Diagrams (Program Service & Application Service)
+
+state "Program Service (Go): Program Lifecycle" as Program {
+  [*] --> Draft : Creation\n(Admin via API Gateway)
+  
+  state "Draft" as Draft
+  state "Published" as Published {
+    [*] --> Registrations_Closed
+    state "Registrations Open" as Registrations_Open
+    state "Registrations Closed" as Registrations_Closed
+    
+    Registrations_Closed --> Registrations_Open : UpdateRegistrationWindow\n[Role: Coordinator]
+    Registrations_Open --> Registrations_Closed : CloseRegistration\n[Role: Coordinator or Scheduler]
+  }
+  state "Archived" as Archived
+  
+  Draft --> Published : PublishProgram\n[Role: Establishment Admin]
+  Published --> Archived : ArchiveProgram\n[Role: Establishment Admin]
+}
+
+--
+
+state "Application Service (Go): Application Lifecycle" as Application {
+  [*] --> PreRegistered : InitApplication\n[Role: Candidate]
+  
+  state "Pre-registered" as PreRegistered
+  state "Submitted" as Submitted
+  state "Under Review" as UnderReview
+  state "Accepted" as Accepted
+  state "Refused" as Refused
+  state "Enrolled" as Enrolled
+  
+  PreRegistered --> Submitted : SubmitApplication\n(Includes upload via Document Service)
+  Submitted --> UnderReview : StartReview\n[Role: Establishment Admin]
+  
+  state AdminChoice <<choice>>
+  UnderReview --> AdminChoice : MakeDecision
+  AdminChoice --> Accepted : Valid application
+  AdminChoice --> Refused : Rejected application
+  
+  Accepted --> Enrolled : FinalizeEnrollment\n(Payment/Physical drop-off)
+  
+  Refused --> [*]
+  Enrolled --> [*]
+}
+@enduml

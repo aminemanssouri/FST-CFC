@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: document_postgres
+    environment:
+      POSTGRES_USER: document_user
+      POSTGRES_PASSWORD: document_pass
+      POSTGRES_DB: document_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - document_pg_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+
+  minio:
+    image: minio/minio:latest
+    container_name: document_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - document_minio_data:/data
+
+  api:
+    build:
+      context: .
+    container_name: document_api
+    environment:
+      - PORT=3006
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=document_user
+      - DB_PASSWORD=document_pass
+      - DB_NAME=document_db
+      - DB_SSLMODE=disable
+      - S3_ENDPOINT=minio:9000
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+      - S3_BUCKET=documents
+      - S3_USE_SSL=false
+      - PRESIGN_EXPIRY_MINUTES=15
+      - JWT_SECRET=changeme-super-secret-key
+    depends_on:
+      - postgres
+      - minio
+    ports:
+      - "3006:3006"
+
+volumes:
+  document_pg_data:
+  document_minio_data:

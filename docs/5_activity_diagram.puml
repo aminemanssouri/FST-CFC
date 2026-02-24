@@ -1,0 +1,111 @@
+@startuml
+title Diagramme d'activités : Parcours Candidat (Candidate Journey)
+skinparam activityBackgroundColor #E8F5E9
+skinparam activityBorderColor #2E7D32
+
+|Candidat|
+start
+:Accéder au site CFC;
+:Consulter le catalogue\ndes formations;
+
+|Système|
+:Afficher la liste des formations\npubliées par établissement;
+
+|Candidat|
+:Choisir une formation;
+
+|Système|
+:Vérifier l'éligibilité;
+note right
+  - Formation en état PUBLIEE ?
+  - Inscriptions ouvertes ?
+  - Date courante dans l'intervalle
+    [date_ouverture, date_fermeture] ?
+end note
+
+if (Formation éligible ?) then (Non)
+  :Afficher message\n"Inscriptions fermées";
+  stop
+else (Oui)
+endif
+
+|Candidat|
+:Remplir le formulaire\nde préinscription;
+note right
+  Informations personnelles :
+  nom, prénom, email,
+  téléphone, diplôme, etc.
+end note
+
+:Préparer les documents\n(diplômes, CV, photos, etc.);
+
+|Document Service|
+:Uploader les fichiers\nvers S3 / MinIO;
+:Retourner les URLs\ndes documents;
+
+|Candidat|
+:Soumettre le dossier\ncomplet;
+
+|Application Service|
+:Créer l'inscription\n(état = PREINSCRIPTION);
+:Passer à l'état\nDOSSIER_SOUMIS;
+
+|Système|
+:Envoyer notification\nà l'Admin d'établissement;
+
+|Admin Établissement|
+:Recevoir le dossier\nà valider;
+:Examiner le dossier\net les documents;
+
+if (Décision ?) then (Accepté)
+  |Application Service|
+  :Mettre à jour l'état\n→ ACCEPTE;
+  |Système|
+  :Notifier le candidat\n(email : dossier accepté);
+
+  |Candidat|
+  :Finaliser l'inscription\n(paiement / dépôt physique);
+
+  |Application Service|
+  :Mettre à jour l'état\n→ INSCRIT;
+
+  |Candidat|
+  :Inscription finalisée ✓;
+  stop
+
+else (Refusé)
+  |Application Service|
+  :Mettre à jour l'état\n→ REFUSE;
+  |Système|
+  :Notifier le candidat\n(email : dossier refusé);
+
+  |Candidat|
+  :Inscription refusée ✗;
+  stop
+endif
+
+@enduml
+
+' ─────────────────────────────────────────────────────
+' EXPLICATION / EXPLANATION
+' ─────────────────────────────────────────────────────
+' Ce diagramme d'activités modélise le parcours complet
+' du candidat dans le système CFC, depuis la consultation
+' du catalogue jusqu'à la finalisation de l'inscription.
+'
+' Éléments clés :
+' 1. Le candidat consulte le catalogue et choisit une formation.
+' 2. Le système vérifie l'éligibilité (formation publiée +
+'    période d'inscription ouverte).
+' 3. Le candidat remplit le formulaire et uploade ses documents
+'    via le Document Service (S3/MinIO).
+' 4. L'inscription est créée (état PREINSCRIPTION → DOSSIER_SOUMIS).
+' 5. L'Admin d'établissement examine et accepte ou refuse.
+' 6. Si accepté, le candidat finalise (état → INSCRIT).
+' 7. Des notifications sont envoyées à chaque étape clé.
+'
+' Hypothèses :
+' - Seules les formations PUBLIEE avec inscriptions ouvertes
+'   sont visibles dans le catalogue.
+' - Le coordinateur a déjà configuré les dates d'inscription.
+' - Les swimlanes montrent la responsabilité de chaque acteur/service.

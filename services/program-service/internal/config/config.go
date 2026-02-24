@@ -1,0 +1,47 @@
+package config
+
+import (
+	"fmt"
+	"os"
+)
+
+// Config holds all configuration for the service.
+type Config struct {
+	Port      string
+	DBHost    string
+	DBPort    string
+	DBUser    string
+	DBPass    string
+	DBName    string
+	DBSSLMode string
+	JWTSecret string
+}
+
+// Load reads configuration from environment variables.
+func Load() *Config {
+	return &Config{
+		Port:      getEnv("PORT", "3004"),
+		DBHost:    getEnv("DB_HOST", "localhost"),
+		DBPort:    getEnv("DB_PORT", "5434"),
+		DBUser:    getEnv("DB_USER", "program_user"),
+		DBPass:    getEnv("DB_PASSWORD", "program_pass"),
+		DBName:    getEnv("DB_NAME", "program_db"),
+		DBSSLMode: getEnv("DB_SSLMODE", "disable"),
+		JWTSecret: getEnv("JWT_SECRET", "changeme-super-secret-key"),
+	}
+}
+
+// DSN returns the PostgreSQL connection string.
+func (c *Config) DSN() string {
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		c.DBHost, c.DBPort, c.DBUser, c.DBPass, c.DBName, c.DBSSLMode,
+	)
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
