@@ -46,7 +46,7 @@ return [
     ],
 
     'application' => [
-        'url' => env('APPLICATION_SERVICE_URL', 'http://program-application-service:8000'),
+        'url' => env('APPLICATION_SERVICE_URL', 'http://application-service:3005'),
     ],
 
 ];

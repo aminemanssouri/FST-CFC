@@ -29,7 +29,7 @@ services:
       DB_USERNAME: auth_user
       DB_PASSWORD: auth_pass
       INSTITUTION_SERVICE_URL: http://institution-service:8000
-      APPLICATION_SERVICE_URL: http://application-service:3004
+      APPLICATION_SERVICE_URL: http://application-service:3005
     depends_on:
       - auth-db
     networks:
@@ -64,7 +64,7 @@ services:
       DB_USERNAME: institution_user
       DB_PASSWORD: institution_pass
       AUTH_SERVICE_URL: http://auth-service:8000
-      APPLICATION_SERVICE_URL: http://application-service:3004
+      APPLICATION_SERVICE_URL: http://application-service:3005
     depends_on:
       - institution-db
     networks:
@@ -83,13 +83,13 @@ services:
     networks:
       - cfc-network
 
-  # ─── Application Service (Go) ─────────────────────────────────────
+  # ─── Application Service (Go) — port 3005 ─────────────────────────
   application-service:
     build: ./services/application-service
     ports:
-      - "3004:3004"
+      - "3005:3005"
     environment:
-      PORT: 3004
+      PORT: 3005
       DB_HOST: application-db
       DB_PORT: 5432
       DB_USER: application_user
@@ -97,8 +97,6 @@ services:
       DB_NAME: application_db
       DB_SSLMODE: disable
       JWT_SECRET: ${JWT_SECRET:-changeme-super-secret-key}
-      AUTH_SERVICE_URL: http://auth-service:8000
-      INSTITUTION_SERVICE_URL: http://institution-service:8000
     depends_on:
       - application-db
     networks:
@@ -117,13 +115,13 @@ services:
     networks:
       - cfc-network
 
-  # ─── Program Service (Go) ─────────────────────────────────────────
+  # ─── Program Service (Go) — port 3004 ─────────────────────────────
   program-service:
     build: ./services/program-service
     ports:
-      - "3005:3005"
+      - "3004:3004"
     environment:
-      PORT: 3005
+      PORT: 3004
       DB_HOST: program-db
       DB_PORT: 5432
       DB_USER: program_user
@@ -203,13 +201,50 @@ services:
     networks:
       - cfc-network
 
-  # ─── Notification Service (NestJS/TypeScript) ─────────────────────
+  # ─── Notification Service (NestJS/TypeScript) — port 3007 ─────────
   notification-service:
     build: ./services/notification-service
     ports:
-      - "3003:3003"
+      - "3007:3007"
     environment:
-      PORT: 3003
+      PORT: 3007
+      MONGO_URI: mongodb://notification-mongo:27017/notification
+      RABBITMQ_URI: amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_EXCHANGE: notifications
+      RABBITMQ_QUEUE_EMAIL: notifications.send.email
+      RABBITMQ_ROUTING_KEY_EMAIL: send.email
+      RABBITMQ_DLQ: notifications.dlq
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      MAIL_FROM: no-reply@fst-cfc.local
+    depends_on:
+      - notification-mongo
+      - rabbitmq
+    networks:
+      - cfc-network
+
+  notification-mongo:
+    image: mongo:7
+    ports:
+      - "27018:27017"
+    volumes:
+      - notification_mongo_data:/data/db
+    networks:
+      - cfc-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - cfc-network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
     networks:
       - cfc-network
 
@@ -244,8 +279,8 @@ services:
     environment:
       PORT: 3020
       PROGRAM_SERVICE_BASE_URL: http://institution-service:8000
-      APPLICATION_SERVICE_BASE_URL: http://application-service:3004
-      NOTIFICATION_SERVICE_BASE_URL: http://notification-service:3003
+      APPLICATION_SERVICE_BASE_URL: http://application-service:3005
+      NOTIFICATION_SERVICE_BASE_URL: http://notification-service:3007
       JOB_INTERVAL_SECONDS: 3600
     depends_on:
       - institution-service
@@ -277,3 +312,4 @@ volumes:
   document_db_data:
   minio_data:
   mongo_data:
+  notification_mongo_data:
