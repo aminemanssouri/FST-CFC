@@ -11,15 +11,15 @@ const etablissements = [
 ]
 
 const admins = [
-    { id: 1, nom: 'Dr. Ahmed Mansouri', email: 'mansouri@usms.ma', role: 'ADMIN_ETAB', etablissement: 'FST-BM', statut: 'active' },
-    { id: 2, nom: 'Dr. Nadia Chraibi', email: 'chraibi@usms.ma', role: 'ADMIN_ETAB', etablissement: 'FEG-BM', statut: 'active' },
+    { id: 1, nom: 'Dr. Ahmed Mansouri', email: 'mansouri@usms.ma', role: 'ADMIN_ETABLISSEMENT', etablissement: 'FST-BM', statut: 'active' },
+    { id: 2, nom: 'Dr. Nadia Chraibi', email: 'chraibi@usms.ma', role: 'ADMIN_ETABLISSEMENT', etablissement: 'FEG-BM', statut: 'active' },
     { id: 3, nom: 'Pr. Fatima Zahra Belkadi', email: 'belkadi@usms.ma', role: 'COORDINATEUR', etablissement: 'FST-BM', statut: 'active' },
     { id: 4, nom: 'Pr. Karim Ouazzani', email: 'ouazzani@usms.ma', role: 'COORDINATEUR', etablissement: 'FST-BM', statut: 'active' },
-    { id: 5, nom: 'Dr. Youssef Berrada', email: 'berrada@usms.ma', role: 'ADMIN_ETAB', etablissement: 'ENCG-BM', statut: 'active' },
+    { id: 5, nom: 'Dr. Youssef Berrada', email: 'berrada@usms.ma', role: 'ADMIN_ETABLISSEMENT', etablissement: 'ENCG-BM', statut: 'active' },
 ]
 
 const roleConfig = {
-    ADMIN_ETAB: { label: 'Admin Établissement', color: 'blue' },
+    ADMIN_ETABLISSEMENT: { label: 'Admin Établissement', color: 'blue' },
     COORDINATEUR: { label: 'Coordinateur', color: 'yellow' },
     SUPER_ADMIN: { label: 'Super Admin', color: 'green' },
 }

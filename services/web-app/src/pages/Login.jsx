@@ -5,14 +5,14 @@ import { Button, Input, Select } from '../components/ui'
 
 const roleOptions = [
     { value: 'CANDIDAT', label: 'Candidat' },
-    { value: 'ADMIN_ETAB', label: 'Admin Établissement' },
+    { value: 'ADMIN_ETABLISSEMENT', label: 'Admin Établissement' },
     { value: 'COORDINATEUR', label: 'Coordinateur' },
     { value: 'SUPER_ADMIN', label: 'Super Admin' },
 ]
 
 const roleRedirects = {
     CANDIDAT: '/dashboard',
-    ADMIN_ETAB: '/admin',
+    ADMIN_ETABLISSEMENT: '/admin',
     COORDINATEUR: '/admin',
     SUPER_ADMIN: '/super-admin',
 }

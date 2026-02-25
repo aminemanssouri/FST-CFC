@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  institution-service:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: cfc-institution-service
+    ports:
+      - "8002:8000"
+    environment:
+      - APP_NAME=InstitutionService
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_URL=http://localhost:8002
+      - DB_CONNECTION=sqlite
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - APPLICATION_SERVICE_URL=http://application-service:3005
+    volumes:
+      - institution-storage:/var/www/storage
+    networks:
+      - cfc-network
+
+volumes:
+  institution-storage:
+
+
+networks:
+  cfc-network:
+    driver: bridge
