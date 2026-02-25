@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: .
+    container_name: cfc-api-gateway
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost:3000
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - INSTITUTION_SERVICE_URL=http://institution-service:8000
+      - APPLICATION_SERVICE_URL=http://application-service:3005
+      - DOCUMENT_SERVICE_URL=http://document-service:3006
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3007
+      - REPORTING_SERVICE_URL=http://reporting-analytics:3010
+    networks:
+      - cfc-network
+
+networks:
+  cfc-network:
+    driver: bridge
