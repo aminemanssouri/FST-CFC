@@ -50,12 +50,12 @@ function App() {
 
                     {/* ── Admin Établissement / Coordinateur ── */}
                     <Route path="/admin" element={
-                        <ProtectedRoute roles={['ADMIN_ETAB', 'COORDINATEUR']}>
+                        <ProtectedRoute roles={['ADMIN_ETABLISSEMENT', 'COORDINATEUR']}>
                             <DashboardAdmin />
                         </ProtectedRoute>
                     } />
                     <Route path="/admin/dossiers/:id" element={
-                        <ProtectedRoute roles={['ADMIN_ETAB', 'COORDINATEUR']}>
+                        <ProtectedRoute roles={['ADMIN_ETABLISSEMENT', 'COORDINATEUR']}>
                             <DossierDetail />
                         </ProtectedRoute>
                     } />

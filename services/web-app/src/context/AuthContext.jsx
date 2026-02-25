@@ -4,7 +4,7 @@ const AuthContext = createContext(null)
 
 const ROLES = {
     CANDIDAT: 'CANDIDAT',
-    ADMIN_ETAB: 'ADMIN_ETAB',
+    ADMIN_ETABLISSEMENT: 'ADMIN_ETABLISSEMENT',
     COORDINATEUR: 'COORDINATEUR',
     SUPER_ADMIN: 'SUPER_ADMIN',
 }
@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
 
     // Quick role helpers
     const isCandidat = user?.role === ROLES.CANDIDAT
-    const isAdmin = user?.role === ROLES.ADMIN_ETAB || user?.role === ROLES.COORDINATEUR
+    const isAdmin = user?.role === ROLES.ADMIN_ETABLISSEMENT || user?.role === ROLES.COORDINATEUR
     const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN
     const isAuthenticated = !!user
 
