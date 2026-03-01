@@ -4,7 +4,7 @@ import { useToast } from '../components/ui/Toast'
 import { PageHeader, Button, Input, Card } from '../components/ui'
 
 export default function Profile() {
-    const { user, login } = useAuth()
+    const { user, updateProfile } = useAuth()
     const toast = useToast()
 
     const [form, setForm] = useState({
@@ -14,13 +14,27 @@ export default function Profile() {
         telephone: '',
         adresse: '',
     })
+    const [submitting, setSubmitting] = useState(false)
 
     const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        login({ ...user, nom: form.nom, email: form.email })
-        toast.success('Profil mis à jour avec succès !')
+        setSubmitting(true)
+
+        try {
+            await updateProfile({
+                name: form.nom,
+                email: form.email,
+                phone: form.telephone,
+                address: form.adresse,
+            })
+            toast.success('Profil mis à jour avec succès !')
+        } catch (err) {
+            toast.error(err.message || 'Erreur lors de la mise à jour.')
+        } finally {
+            setSubmitting(false)
+        }
     }
 
     return (
@@ -57,10 +71,10 @@ export default function Profile() {
                                     Informations Personnelles
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 bg-slate-50 p-6 rounded-xl border border-slate-100">
-                                    <Input label="Nom complet" value={form.nom} onChange={e => update('nom', e.target.value)} required />
-                                    <Input label="Prénom" value={form.prenom} onChange={e => update('prenom', e.target.value)} />
+                                    <Input label="Nom complet" value={form.nom} onChange={e => update('nom', e.target.value)} required disabled={submitting} />
+                                    <Input label="Prénom" value={form.prenom} onChange={e => update('prenom', e.target.value)} disabled={submitting} />
                                     <div className="sm:col-span-2">
-                                        <Input label="Adresse résidentielle" placeholder="Ville, Maroc" value={form.adresse} onChange={e => update('adresse', e.target.value)} />
+                                        <Input label="Adresse résidentielle" placeholder="Ville, Maroc" value={form.adresse} onChange={e => update('adresse', e.target.value)} disabled={submitting} />
                                     </div>
                                 </div>
                             </div>
@@ -71,17 +85,24 @@ export default function Profile() {
                                     Coordonnées
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 bg-slate-50 p-6 rounded-xl border border-slate-100">
-                                    <Input type="email" label="Adresse email principale" value={form.email} onChange={e => update('email', e.target.value)} required />
-                                    <Input type="tel" label="Numéro de téléphone" placeholder="+212 6XX-XXXXXX" value={form.telephone} onChange={e => update('telephone', e.target.value)} />
+                                    <Input type="email" label="Adresse email principale" value={form.email} onChange={e => update('email', e.target.value)} required disabled={submitting} />
+                                    <Input type="tel" label="Numéro de téléphone" placeholder="+212 6XX-XXXXXX" value={form.telephone} onChange={e => update('telephone', e.target.value)} disabled={submitting} />
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-6 mt-4 border-t border-slate-100">
-                            <Button type="submit" size="lg" className="sm:w-auto w-full px-8">
-                                💾 Mettre à jour le profil
+                            <Button type="submit" size="lg" className="sm:w-auto w-full px-8" disabled={submitting}>
+                                {submitting ? (
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Mise à jour...
+                                    </span>
+                                ) : (
+                                    '💾 Mettre à jour le profil'
+                                )}
                             </Button>
-                            <Button type="button" size="lg" variant="outline" className="sm:w-auto w-full" onClick={() => setForm({ nom: user?.nom || '', prenom: '', email: user?.email || '', telephone: '', adresse: '' })}>
+                            <Button type="button" size="lg" variant="outline" className="sm:w-auto w-full" onClick={() => setForm({ nom: user?.nom || '', prenom: '', email: user?.email || '', telephone: '', adresse: '' })} disabled={submitting}>
                                 Rétablir
                             </Button>
                         </div>

@@ -1,34 +1,30 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Button, Input, Select } from '../components/ui'
-
-const roleOptions = [
-    { value: 'CANDIDAT', label: 'Candidat' },
-    { value: 'ADMIN_ETABLISSEMENT', label: 'Admin Établissement' },
-    { value: 'COORDINATEUR', label: 'Coordinateur' },
-    { value: 'SUPER_ADMIN', label: 'Super Admin' },
-]
-
-const roleRedirects = {
-    CANDIDAT: '/dashboard',
-    ADMIN_ETABLISSEMENT: '/admin',
-    COORDINATEUR: '/admin',
-    SUPER_ADMIN: '/super-admin',
-}
+import { Button, Input } from '../components/ui'
 
 export default function Login() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [role, setRole] = useState('CANDIDAT')
-    const { login } = useAuth()
+    const [error, setError] = useState('')
+    const [submitting, setSubmitting] = useState(false)
+    const { login, ROLE_REDIRECTS } = useAuth()
     const navigate = useNavigate()
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        // Demo login — in production this would call POST /api/auth/login
-        login({ nom: email.split('@')[0] || 'Utilisateur', email, role })
-        navigate(roleRedirects[role])
+        setError('')
+        setSubmitting(true)
+
+        try {
+            const user = await login(email, password)
+            const redirectPath = ROLE_REDIRECTS[user.role] || '/dashboard'
+            navigate(redirectPath, { replace: true })
+        } catch (err) {
+            setError(err.message || 'Identifiants incorrects.')
+        } finally {
+            setSubmitting(false)
+        }
     }
 
     return (
@@ -42,11 +38,45 @@ export default function Login() {
                     <p className="text-slate-500 mt-1">Accédez à votre espace personnel</p>
                 </div>
 
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm font-medium flex items-start gap-3">
+                        <span className="text-lg">⚠️</span>
+                        <span>{error}</span>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    <Input id="email" type="email" label="Adresse email" placeholder="votre@email.ma" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    <Input id="password" type="password" label="Mot de passe" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    <Select id="role" label="Rôle (démo)" options={roleOptions} value={role} onChange={(e) => setRole(e.target.value)} />
-                    <Button type="submit" full size="lg">Se connecter →</Button>
+                    <Input
+                        id="email"
+                        type="email"
+                        label="Adresse email"
+                        placeholder="votre@email.ma"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={submitting}
+                    />
+                    <Input
+                        id="password"
+                        type="password"
+                        label="Mot de passe"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        disabled={submitting}
+                    />
+
+                    <Button type="submit" full size="lg" disabled={submitting}>
+                        {submitting ? (
+                            <span className="flex items-center justify-center gap-3">
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Connexion en cours...
+                            </span>
+                        ) : (
+                            'Se connecter →'
+                        )}
+                    </Button>
                 </form>
 
                 <p className="text-center mt-6 text-sm text-slate-500">

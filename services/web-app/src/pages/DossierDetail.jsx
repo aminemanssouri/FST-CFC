@@ -1,14 +1,14 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useToast } from '../components/ui/Toast'
 import { PageHeader, Badge, Button, Card } from '../components/ui'
+import api from '../services/api'
 
-const dossiers = {
+// ── Fallback data ──────────────────────────────────────────────────
+const fallbackDossiers = {
     101: {
         candidat: { nom: 'Amine El Fadili', email: 'amine@email.ma', telephone: '+212 612-345678', diplome: 'Licence en Mathématiques', annee: 2024 },
-        formation: 'Licence en Informatique et Numérique',
-        etablissement: 'FST Béni Mellal',
-        date: '2026-02-18',
-        etat: 'DOSSIER_SOUMIS',
+        formation: 'Licence en Informatique et Numérique', etablissement: 'FST Béni Mellal', date: '2026-02-18', etat: 'DOSSIER_SOUMIS',
         documents: [
             { nom: 'CV_Amine_ElFadili.pdf', type: 'CV', taille: '245 KB', date: '2026-02-18' },
             { nom: 'Diplome_Licence_Math.pdf', type: 'Diplôme', taille: '1.2 MB', date: '2026-02-18' },
@@ -22,10 +22,7 @@ const dossiers = {
     },
     102: {
         candidat: { nom: 'Sara Benali', email: 'sara@email.ma', telephone: '+212 698-765432', diplome: 'Licence en Informatique', annee: 2025 },
-        formation: 'Master en Data Science',
-        etablissement: 'FST Béni Mellal',
-        date: '2026-02-17',
-        etat: 'EN_VALIDATION',
+        formation: 'Master en Data Science', etablissement: 'FST Béni Mellal', date: '2026-02-17', etat: 'EN_VALIDATION',
         documents: [
             { nom: 'CV_Sara_Benali.pdf', type: 'CV', taille: '198 KB', date: '2026-02-17' },
             { nom: 'Diplome_Licence_Info.pdf', type: 'Diplôme', taille: '980 KB', date: '2026-02-17' },
@@ -41,20 +38,66 @@ const dossiers = {
 }
 
 const etatConfig = {
+    PREINSCRIPTION: { label: 'Pré-inscription', color: 'gray' },
     DOSSIER_SOUMIS: { label: 'Dossier soumis', color: 'indigo' },
     EN_VALIDATION: { label: 'En validation', color: 'yellow' },
     ACCEPTE: { label: 'Accepté', color: 'green' },
     REFUSE: { label: 'Refusé', color: 'red' },
 }
 
-const docIcons = { CV: '📄', Diplôme: '🎓', Photo: '📷' }
+function normalizeDossier(data) {
+    return {
+        candidat: {
+            nom: data.candidate?.name || data.user?.name || data.candidat?.nom || '—',
+            email: data.candidate?.email || data.user?.email || data.candidat?.email || '—',
+            telephone: data.candidate?.phone || data.candidat?.telephone || '—',
+            diplome: data.diploma || data.candidat?.diplome || '—',
+            annee: data.diploma_year || data.candidat?.annee || '—',
+        },
+        formation: data.formation?.title || data.formation_title || data.formation || '—',
+        etablissement: data.formation?.establishment?.name || data.etablissement || '—',
+        date: data.created_at || data.date || new Date().toISOString(),
+        etat: (data.status || data.etat || 'DOSSIER_SOUMIS').toUpperCase(),
+        documents: data.documents || [],
+        historique: data.history || data.historique || [],
+    }
+}
+
+const docIcons = { CV: '📄', 'Diplôme': '🎓', Photo: '📷', cv: '📄', diploma: '🎓', photo: '📷' }
 
 export default function DossierDetail() {
     const { id } = useParams()
     const toast = useToast()
-    const d = dossiers[id]
+    const [dossier, setDossier] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [deciding, setDeciding] = useState(false)
 
-    if (!d) {
+    useEffect(() => {
+        async function fetchDossier() {
+            try {
+                const data = await api.get(`/inscriptions/${id}`, { useJwt: true })
+                setDossier(normalizeDossier(data))
+            } catch {
+                // Fallback to demo data
+                if (fallbackDossiers[id]) {
+                    setDossier(fallbackDossiers[id])
+                }
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchDossier()
+    }, [id])
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-50">
+                <div className="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
+            </div>
+        )
+    }
+
+    if (!dossier) {
         return (
             <div className="text-center py-24 animate-fade-in">
                 <p className="text-5xl mb-4">📭</p>
@@ -64,11 +107,19 @@ export default function DossierDetail() {
         )
     }
 
-    const { label, color } = etatConfig[d.etat]
+    const d = dossier
+    const { label, color } = etatConfig[d.etat] || { label: d.etat, color: 'gray' }
     const canDecide = d.etat === 'DOSSIER_SOUMIS' || d.etat === 'EN_VALIDATION'
 
-    const handleDecision = (decision) => {
+    const handleDecision = async (decision) => {
+        setDeciding(true)
+        const newEtat = decision === 'accept' ? 'ACCEPTE' : 'REFUSE'
+        try {
+            await api.patch(`/inscriptions/${id}/transition`, { status: newEtat }, { useJwt: true })
+        } catch { /* update locally anyway */ }
+        setDossier(prev => ({ ...prev, etat: newEtat }))
         toast.success(`Dossier ${decision === 'accept' ? 'accepté' : 'refusé'} avec succès !`)
+        setDeciding(false)
     }
 
     return (
@@ -97,7 +148,7 @@ export default function DossierDetail() {
                                     ['Dernier diplôme', d.candidat.diplome],
                                     ['Année d\'obtention', d.candidat.annee],
                                     ['Programme visé', d.formation],
-                                ].map(([l, v], i) => (
+                                ].map(([l, v]) => (
                                     <div key={l} className="flex flex-col">
                                         <span className="text-slate-400 text-xs font-bold uppercase tracking-widest pl-1 mb-1">{l}</span>
                                         <div className="bg-slate-50 px-4 py-2.5 rounded border border-slate-200 font-medium text-slate-800">
@@ -113,26 +164,29 @@ export default function DossierDetail() {
                                 <span className="w-10 h-10 rounded-xl bg-slate-100 text-amber-600 flex items-center justify-center text-lg">📎</span>
                                 Pièces Justificatives ({d.documents.length})
                             </h3>
-                            <div className="space-y-3">
-                                {d.documents.map((doc, i) => (
-                                    <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl hover:bg-white transition-all duration-300">
-                                        <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl border border-slate-200 shrink-0">
-                                            {docIcons[doc.type] || '📄'}
+                            {d.documents.length > 0 ? (
+                                <div className="space-y-3">
+                                    {d.documents.map((doc, i) => (
+                                        <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl hover:bg-white transition-all duration-300">
+                                            <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl border border-slate-200 shrink-0">
+                                                {docIcons[doc.type] || '📄'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-slate-800 truncate">{doc.nom || doc.name || doc.filename || 'Document'}</p>
+                                                <p className="text-xs font-medium text-slate-500 mt-0.5">Type: {doc.type} · Taille: {doc.taille || doc.size || '—'} · Uploadé le {doc.date || doc.uploaded_at || '—'}</p>
+                                            </div>
+                                            <Button variant="outline" size="sm" className="bg-white shrink-0">Télécharger ↓</Button>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-slate-800 truncate">{doc.nom}</p>
-                                            <p className="text-xs font-medium text-slate-500 mt-0.5">Type: {doc.type} · Taille: {doc.taille} · Uploadé le {doc.date}</p>
-                                        </div>
-                                        <Button variant="outline" size="sm" className="bg-white shrink-0">Télécharger ↓</Button>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-slate-500 text-sm text-center py-6">Aucun document fourni.</p>
+                            )}
                         </Card>
                     </div>
 
                     {/* Right: Actions + Historique */}
                     <div className="space-y-8 lg:sticky lg:top-24">
-
                         {canDecide && (
                             <Card className="p-8 border-slate-200 bg-white">
                                 <h3 className="text-lg font-bold text-brand-900 tracking-tight mb-6 pb-3 border-b border-slate-200 flex items-center gap-2">
@@ -142,11 +196,11 @@ export default function DossierDetail() {
                                     Veuillez examiner attentivement les pièces justificatives avant de prendre une décision finale.
                                 </p>
                                 <div className="space-y-3">
-                                    <Button full size="lg" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleDecision('accept')}>
-                                        ✓ Accepter la candidature
+                                    <Button full size="lg" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleDecision('accept')} disabled={deciding}>
+                                        {deciding ? '...' : '✓ Accepter la candidature'}
                                     </Button>
-                                    <Button full size="lg" variant="outline" className="text-red-700 border-red-200 hover:bg-red-50" onClick={() => handleDecision('refuse')}>
-                                        ✕ Rejeter la candidature
+                                    <Button full size="lg" variant="outline" className="text-red-700 border-red-200 hover:bg-red-50" onClick={() => handleDecision('refuse')} disabled={deciding}>
+                                        {deciding ? '...' : '✕ Rejeter la candidature'}
                                     </Button>
                                 </div>
                             </Card>
@@ -156,21 +210,22 @@ export default function DossierDetail() {
                             <h3 className="text-lg font-bold text-brand-900 tracking-tight mb-6 pb-3 border-b border-slate-100 flex items-center gap-2">
                                 <span className="text-xl">📜</span> Historique d'Activité
                             </h3>
-                            <div className="space-y-5">
-                                {d.historique.map((h, i) => (
-                                    <div key={i} className="relative pl-6 pb-1">
-                                        {/* Vertical line connecting timeline items, except for the last one */}
-                                        {i !== d.historique.length - 1 && (
-                                            <div className="absolute left-[5px] top-3 bottom-[-1.25rem] w-px bg-slate-200" />
-                                        )}
-                                        {/* Timeline dot */}
-                                        <div className="absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full bg-slate-800 ring-4 ring-slate-100" />
-
-                                        <p className="text-sm font-bold text-slate-800">{h.action}</p>
-                                        <p className="text-xs font-medium text-slate-500 mt-1">{h.date} · par <span className="text-brand-600">{h.par}</span></p>
-                                    </div>
-                                ))}
-                            </div>
+                            {d.historique.length > 0 ? (
+                                <div className="space-y-5">
+                                    {d.historique.map((h, i) => (
+                                        <div key={i} className="relative pl-6 pb-1">
+                                            {i !== d.historique.length - 1 && (
+                                                <div className="absolute left-[5px] top-3 bottom-[-1.25rem] w-px bg-slate-200" />
+                                            )}
+                                            <div className="absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full bg-slate-800 ring-4 ring-slate-100" />
+                                            <p className="text-sm font-bold text-slate-800">{h.action}</p>
+                                            <p className="text-xs font-medium text-slate-500 mt-1">{h.date} · par <span className="text-brand-600">{h.par || h.by || 'Système'}</span></p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-slate-500 text-sm text-center py-4">Aucun historique disponible.</p>
+                            )}
                         </Card>
                     </div>
                 </div>
