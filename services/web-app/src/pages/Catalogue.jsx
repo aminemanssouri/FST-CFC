@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PageHeader, Card, Badge, Select, Pagination } from '../components/ui'
+import api from '../services/api'
 
-const allFormations = [
+// ── Fallback data (used if API is unavailable) ─────────────────────
+const fallbackFormations = [
     { id: 1, titre: 'Licence en Informatique et Numérique', etablissement: 'FST-BM', type: 'LP', inscriptions: true, description: 'Formation en développement logiciel, bases de données, réseaux et intelligence artificielle.', dateFermeture: '2026-06-30' },
     { id: 2, titre: 'Master en Énergies Renouvelables', etablissement: 'FST-BM', type: 'MS', inscriptions: true, description: 'Spécialisation en énergie solaire, éolienne et biomasse pour un développement durable.', dateFermeture: '2026-07-15' },
     { id: 3, titre: 'Licence en Management et Gestion', etablissement: 'ENCG-BM', type: 'LP', inscriptions: true, description: "Formation en gestion d'entreprise, marketing, finance et ressources humaines.", dateFermeture: '2026-05-31' },
@@ -16,6 +18,19 @@ const allFormations = [
     { id: 11, titre: "DUT en Génie Électrique", etablissement: 'EST-BM', type: 'DUT', inscriptions: true, description: "Électronique de puissance, automatisme industriel et installations électriques.", dateFermeture: '2026-08-01' },
     { id: 12, titre: 'Master en Intelligence Artificielle', etablissement: 'FST-BM', type: 'MS', inscriptions: true, description: 'Deep learning, NLP, computer vision et systèmes multi-agents.', dateFermeture: '2026-09-30' },
 ]
+
+// ── Normalise API response to our shape ────────────────────────────
+function normalizeFormation(f) {
+    return {
+        id: f.id,
+        titre: f.title || f.intitule || f.titre || f.name || `Formation #${f.id}`,
+        etablissement: f.establishment?.abbreviation || f.establishment?.name || f.etablissement || 'N/A',
+        type: f.type || f.diploma_type || 'LP',
+        inscriptions: f.registration_open ?? f.inscriptions ?? true,
+        description: f.description || f.overview || '',
+        dateFermeture: f.registration_end_date || f.dateFermeture || null,
+    }
+}
 
 const etabOptions = [
     { value: '', label: 'Tous les établissements' },
@@ -40,10 +55,31 @@ export default function Catalogue() {
     const [searchParams] = useSearchParams()
     const filterEtab = searchParams.get('etablissement') || ''
 
+    const [allFormations, setAllFormations] = useState(fallbackFormations)
+    const [loadingData, setLoadingData] = useState(true)
     const [search, setSearch] = useState('')
     const [etab, setEtab] = useState(filterEtab)
     const [type, setType] = useState('')
     const [page, setPage] = useState(1)
+
+    // ── Fetch formations from API ──────────────────────────────────
+    useEffect(() => {
+        async function fetchFormations() {
+            try {
+                const data = await api.get('/catalog')
+                const list = data.formations || data.data || data || []
+                if (Array.isArray(list) && list.length > 0) {
+                    setAllFormations(list.map(normalizeFormation))
+                }
+                // If API returns empty, keep fallback data
+            } catch {
+                // API unreachable — keep fallback data (demo mode)
+            } finally {
+                setLoadingData(false)
+            }
+        }
+        fetchFormations()
+    }, [])
 
     const filtered = useMemo(() => {
         return allFormations.filter(f => {
@@ -52,14 +88,14 @@ export default function Catalogue() {
             if (search && !f.titre.toLowerCase().includes(search.toLowerCase())) return false
             return true
         })
-    }, [search, etab, type])
+    }, [search, etab, type, allFormations])
 
     const totalPages = Math.ceil(filtered.length / PER_PAGE)
     const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
     const handleFilterChange = (setter) => (e) => {
         setter(e.target.value)
-        setPage(1) // reset to page 1 on filter change
+        setPage(1)
     }
 
     return (
@@ -95,8 +131,13 @@ export default function Catalogue() {
                     </Badge>
                 </div>
 
-                {/* ── Grid ── */}
-                {paginated.length > 0 ? (
+                {/* ── Loading ── */}
+                {loadingData ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <div className="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mb-4" />
+                        <p className="text-slate-500 font-medium">Chargement des formations...</p>
+                    </div>
+                ) : paginated.length > 0 ? (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
                             {paginated.map(f => (
