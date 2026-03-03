@@ -1,31 +1,37 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { PageHeader, Badge, Button, Table, TableRow, TableCell, EmptyState } from '../components/ui'
-
-const inscriptions = [
-    { id: 1, formation: 'Licence en Informatique et Numérique', etablissement: 'FST Béni Mellal', etat: 'DOSSIER_SOUMIS', date: '2026-02-10' },
-    { id: 2, formation: 'Master en Data Science', etablissement: 'FST Béni Mellal', etat: 'EN_VALIDATION', date: '2026-02-15' },
-    { id: 3, formation: 'Licence en Commerce International', etablissement: 'FEG Béni Mellal', etat: 'ACCEPTE', date: '2026-01-25' },
-]
+import { applicationApi } from '../api'
 
 const etatConfig = {
     PREINSCRIPTION: { label: 'Pré-inscription', color: 'gray' },
     DOSSIER_SOUMIS: { label: 'Dossier soumis', color: 'indigo' },
-    EN_VALIDATION: { label: 'En validation', color: 'yellow' },
-    ACCEPTE: { label: 'Accepté', color: 'green' },
-    REFUSE: { label: 'Refusé', color: 'red' },
-    INSCRIT: { label: 'Inscrit', color: 'green' },
+    EN_VALIDATION:  { label: 'En validation',   color: 'yellow' },
+    ACCEPTE:        { label: 'Accepté',          color: 'green' },
+    REFUSE:         { label: 'Refusé',           color: 'red' },
+    INSCRIT:        { label: 'Inscrit',          color: 'green' },
 }
 
 const navItems = [
     { key: 'inscriptions', icon: '📋', label: 'Mes inscriptions', to: '/dashboard' },
     { key: 'notifications', icon: '🔔', label: 'Notifications', to: '/notifications' },
-    { key: 'profil', icon: '⚙️', label: 'Mon profil', to: '/profile' },
+    { key: 'profil', icon: '⚙️', label: 'Mon profil', to: '/profil' },
 ]
 
 export default function DashboardCandidat() {
     const { user } = useAuth()
     const location = useLocation()
+    const [inscriptions, setInscriptions] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        if (!user?.id) return
+        applicationApi.getInscriptions({ candidat_id: user.id })
+            .then(data => setInscriptions(data.data || data || []))
+            .catch(() => setInscriptions([]))
+            .finally(() => setLoading(false))
+    }, [user?.id])
 
     return (
         <div className="animate-fade-in bg-slate-50 min-h-screen pb-12">
@@ -84,15 +90,18 @@ export default function DashboardCandidat() {
                             </Badge>
                         </div>
 
-                        {inscriptions.length > 0 ? (
+                        {loading ? (
+                            <div className="py-12 text-center text-slate-400">Chargement...</div>
+                        ) : inscriptions.length > 0 ? (
                             <Table columns={['Programme Cible', 'Établissement', 'Date de Dépôt', 'Statut Actuel', 'Actions']}>
                                 {inscriptions.map(ins => {
                                     const { label, color } = etatConfig[ins.etat] || { label: ins.etat, color: 'gray' }
+                                    const dateStr = ins.created_at || ins.date || ''
                                     return (
                                         <TableRow key={ins.id}>
-                                            <TableCell bold className="text-slate-800">{ins.formation}</TableCell>
-                                            <TableCell className="text-slate-600">{ins.etablissement}</TableCell>
-                                            <TableCell className="text-sm">{new Date(ins.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
+                                            <TableCell bold className="text-slate-800">{ins.formation || ins.nom_complet || `Formation #${ins.formation_id}`}</TableCell>
+                                            <TableCell className="text-slate-600">{ins.etablissement || '—'}</TableCell>
+                                            <TableCell className="text-sm">{dateStr ? new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}</TableCell>
                                             <TableCell><Badge color={color}>{label}</Badge></TableCell>
                                             <TableCell>
                                                 <div className="flex justify-end">

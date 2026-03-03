@@ -47,6 +47,11 @@ function App() {
                             <DashboardCandidat />
                         </ProtectedRoute>
                     } />
+                    <Route path="/dossiers/:id" element={
+                        <ProtectedRoute roles={['CANDIDAT']}>
+                            <DossierDetail />
+                        </ProtectedRoute>
+                    } />
 
                     {/* ── Admin Établissement / Coordinateur ── */}
                     <Route path="/admin" element={

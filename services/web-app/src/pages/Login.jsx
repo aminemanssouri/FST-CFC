@@ -1,14 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Button, Input, Select } from '../components/ui'
-
-const roleOptions = [
-    { value: 'CANDIDAT', label: 'Candidat' },
-    { value: 'ADMIN_ETABLISSEMENT', label: 'Admin Établissement' },
-    { value: 'COORDINATEUR', label: 'Coordinateur' },
-    { value: 'SUPER_ADMIN', label: 'Super Admin' },
-]
+import { Button, Input } from '../components/ui'
+import { authApi } from '../api'
 
 const roleRedirects = {
     CANDIDAT: '/dashboard',
@@ -20,15 +14,32 @@ const roleRedirects = {
 export default function Login() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [role, setRole] = useState('CANDIDAT')
+    const [error, setError] = useState('')
+    const [loading, setLoading] = useState(false)
     const { login } = useAuth()
     const navigate = useNavigate()
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        // Demo login — in production this would call POST /api/auth/login
-        login({ nom: email.split('@')[0] || 'Utilisateur', email, role })
-        navigate(roleRedirects[role])
+        setError('')
+        setLoading(true)
+        try {
+            const data = await authApi.login(email, password)
+            // data: { user: { id, name, email, role, ... }, token, jwt }
+            login(data.user, data.token, data.jwt)
+            const redirects = roleRedirects[data.user?.role] || roleRedirects
+            // role from AuthContext is already mapped to uppercase French
+            const mapped =
+                data.user?.role === 'candidate' ? 'CANDIDAT' :
+                data.user?.role === 'establishment_admin' ? 'ADMIN_ETABLISSEMENT' :
+                data.user?.role === 'coordinator' ? 'COORDINATEUR' :
+                data.user?.role === 'super_admin' ? 'SUPER_ADMIN' : data.user?.role
+            navigate(roleRedirects[mapped] || '/dashboard')
+        } catch (err) {
+            setError(err.message || 'Email ou mot de passe incorrect.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -42,11 +53,18 @@ export default function Login() {
                     <p className="text-slate-500 mt-1">Accédez à votre espace personnel</p>
                 </div>
 
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                        {error}
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <Input id="email" type="email" label="Adresse email" placeholder="votre@email.ma" value={email} onChange={(e) => setEmail(e.target.value)} required />
                     <Input id="password" type="password" label="Mot de passe" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    <Select id="role" label="Rôle (démo)" options={roleOptions} value={role} onChange={(e) => setRole(e.target.value)} />
-                    <Button type="submit" full size="lg">Se connecter →</Button>
+                    <Button type="submit" full size="lg" disabled={loading}>
+                        {loading ? 'Connexion...' : 'Se connecter →'}
+                    </Button>
                 </form>
 
                 <p className="text-center mt-6 text-sm text-slate-500">

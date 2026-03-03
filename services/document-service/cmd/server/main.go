@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// Initialize S3 client
-	s3Client := storage.NewS3Client(cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey, cfg.S3Bucket, cfg.S3UseSSL, cfg.PresignExpiryMins)
+	s3Client := storage.NewS3Client(cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey, cfg.S3Bucket, cfg.S3UseSSL, cfg.PresignExpiryMins, cfg.S3PublicEndpoint)
 
 	log.Println("database connected and migrated, S3 client initialized")
 

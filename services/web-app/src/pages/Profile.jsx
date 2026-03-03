@@ -2,25 +2,39 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../components/ui/Toast'
 import { PageHeader, Button, Input, Card } from '../components/ui'
+import { authApi } from '../api'
 
 export default function Profile() {
     const { user, login } = useAuth()
     const toast = useToast()
+    const [saving, setSaving] = useState(false)
 
     const [form, setForm] = useState({
-        nom: user?.nom || '',
-        prenom: '',
-        email: user?.email || '',
-        telephone: '',
-        adresse: '',
+        nom:       user?.nom || user?.name || '',
+        prenom:    '',
+        email:     user?.email || '',
+        telephone: user?.phone || user?.telephone || '',
+        adresse:   '',
     })
 
     const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        login({ ...user, nom: form.nom, email: form.email })
-        toast.success('Profil mis à jour avec succès !')
+        setSaving(true)
+        try {
+            const data = await authApi.updateProfile({
+                name:  `${form.prenom} ${form.nom}`.trim() || form.nom,
+                phone: form.telephone,
+            })
+            // Update context with fresh user data (keep existing tokens)
+            login(data.user || { ...user, nom: form.nom, email: form.email }, null, null)
+            toast.success('Profil mis à jour avec succès !')
+        } catch {
+            toast.error('Erreur lors de la mise à jour du profil.')
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
@@ -78,10 +92,10 @@ export default function Profile() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-6 mt-4 border-t border-slate-100">
-                            <Button type="submit" size="lg" className="sm:w-auto w-full px-8">
-                                💾 Mettre à jour le profil
+                            <Button type="submit" size="lg" className="sm:w-auto w-full px-8" disabled={saving}>
+                                {saving ? 'Enregistrement...' : '💾 Mettre à jour le profil'}
                             </Button>
-                            <Button type="button" size="lg" variant="outline" className="sm:w-auto w-full" onClick={() => setForm({ nom: user?.nom || '', prenom: '', email: user?.email || '', telephone: '', adresse: '' })}>
+                            <Button type="button" size="lg" variant="outline" className="sm:w-auto w-full" onClick={() => setForm({ nom: user?.nom || '', prenom: '', email: user?.email || '', telephone: user?.phone || '', adresse: '' })}>
                                 Rétablir
                             </Button>
                         </div>

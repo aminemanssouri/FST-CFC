@@ -16,6 +16,7 @@ type Config struct {
 	DBName            string
 	DBSSLMode         string
 	S3Endpoint        string
+	S3PublicEndpoint  string
 	S3AccessKey       string
 	S3SecretKey       string
 	S3Bucket          string
@@ -38,6 +39,7 @@ func Load() *Config {
 		DBName:            getEnv("DB_NAME", "document_db"),
 		DBSSLMode:         getEnv("DB_SSLMODE", "disable"),
 		S3Endpoint:        getEnv("S3_ENDPOINT", "localhost:9000"),
+		S3PublicEndpoint:  getEnv("S3_PUBLIC_ENDPOINT", ""),
 		S3AccessKey:       getEnv("S3_ACCESS_KEY", "minioadmin"),
 		S3SecretKey:       getEnv("S3_SECRET_KEY", "minioadmin"),
 		S3Bucket:          getEnv("S3_BUCKET", "documents"),

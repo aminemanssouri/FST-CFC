@@ -119,7 +119,7 @@ func (h *DocumentHandler) Upload(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": doc})
 }
 
-// Download generates a presigned URL for downloading the document.
+// Download streams the document content directly from S3 to the client.
 func (h *DocumentHandler) Download(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -133,17 +133,22 @@ func (h *DocumentHandler) Download(c *gin.Context) {
 		return
 	}
 
-	presignedURL, err := h.s3.PresignedURL(c.Request.Context(), doc.URLStockage)
+	reader, size, err := h.s3.GetObject(c.Request.Context(), doc.URLStockage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve file"})
 		return
 	}
+	defer reader.Close()
 
-	c.JSON(http.StatusOK, gin.H{
-		"download_url": presignedURL.String(),
-		"nom_fichier":  doc.NomFichier,
-		"content_type": doc.ContentType,
-	})
+	contentType := doc.ContentType
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, doc.NomFichier))
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Length", fmt.Sprintf("%d", size))
+	c.DataFromReader(http.StatusOK, size, contentType, reader, nil)
 }
 
 // Delete removes a document from both S3 and the database.

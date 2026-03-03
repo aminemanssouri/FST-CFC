@@ -1,37 +1,36 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { PageHeader, Badge, Button, Card } from '../components/ui'
-
-const formations = {
-    1: { titre: 'Licence en Informatique et Numérique', etablissement: 'FST Béni Mellal', coordinateur: 'Dr. Ahmed Mansouri', inscriptions: true, description: 'Formation en développement logiciel, bases de données, réseaux et intelligence artificielle. Cette licence prépare les étudiants aux métiers du numérique avec une approche pratique et professionnalisante.', dateOuverture: '2026-01-15', dateFermeture: '2026-06-30', duree: '3 ans', diplome: 'Licence Professionnelle', frais: '15 000 MAD/an', places: 40 },
-    2: { titre: 'Master en Énergies Renouvelables', etablissement: 'FST Béni Mellal', coordinateur: 'Pr. Fatima Zahra Belkadi', inscriptions: true, description: 'Spécialisation en énergie solaire, éolienne et biomasse pour un développement durable.', dateOuverture: '2026-02-01', dateFermeture: '2026-07-15', duree: '2 ans', diplome: 'Master Spécialisé', frais: '20 000 MAD/an', places: 25 },
-    3: { titre: 'Licence en Management et Gestion', etablissement: 'ENCG Béni Mellal', coordinateur: 'Dr. Youssef Berrada', inscriptions: true, description: 'Formation en gestion d\'entreprise, marketing, finance et ressources humaines.', dateOuverture: '2026-01-20', dateFermeture: '2026-05-31', duree: '3 ans', diplome: 'Licence Professionnelle', frais: '18 000 MAD/an', places: 50 },
-    5: { titre: 'Licence en Commerce International', etablissement: 'FEG Béni Mellal', coordinateur: 'Dr. Nadia Chraibi', inscriptions: true, description: 'Échanges internationaux, logistique, douane et négociation commerciale.', dateOuverture: '2026-03-01', dateFermeture: '2026-08-31', duree: '3 ans', diplome: 'Licence Professionnelle', frais: '16 000 MAD/an', places: 35 },
-    7: { titre: 'Master en Data Science', etablissement: 'FST Béni Mellal', coordinateur: 'Pr. Karim Ouazzani', inscriptions: true, description: 'Analyse de données, machine learning, statistiques avancées et Python.', dateOuverture: '2026-02-15', dateFermeture: '2026-07-30', duree: '2 ans', diplome: 'Master Spécialisé', frais: '22 000 MAD/an', places: 30 },
-    8: { titre: 'Licence en Sciences de l\'Éducation', etablissement: 'FLSH Béni Mellal', coordinateur: 'Dr. Amina Fassi', inscriptions: true, description: 'Pédagogie, psychologie de l\'éducation et didactique des disciplines.', dateOuverture: '2026-01-10', dateFermeture: '2026-06-15', duree: '3 ans', diplome: 'Licence Professionnelle', frais: '12 000 MAD/an', places: 45 },
-}
-
-const infoFields = (f) => [
-    { label: 'Diplôme', value: f.diplome },
-    { label: 'Durée', value: f.duree },
-    { label: 'Frais', value: f.frais },
-    { label: 'Places', value: `${f.places} places` },
-]
-
-const dateFields = (f) => [
-    { label: 'Ouverture', value: f.dateOuverture },
-    { label: 'Fermeture', value: f.dateFermeture },
-]
+import { institutionApi } from '../api'
 
 const InfoRow = ({ label, value }) => (
     <div className="flex justify-between items-center py-2">
         <span className="text-sm text-slate-500 font-medium">{label}</span>
-        <span className="text-sm font-bold text-slate-800">{value}</span>
+        <span className="text-sm font-bold text-slate-800">{value || '—'}</span>
     </div>
 )
 
 export default function FormationDetail() {
     const { id } = useParams()
-    const f = formations[id]
+    const [f, setF] = useState(null)
+    const [regStatus, setRegStatus] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        setLoading(true)
+        Promise.all([
+            institutionApi.getFormation(id).catch(() => null),
+            institutionApi.getRegistrationStatus(id).catch(() => null),
+        ]).then(([formation, status]) => {
+            const data = formation?.data || formation
+            setF(data)
+            setRegStatus(status?.data || status)
+        }).finally(() => setLoading(false))
+    }, [id])
+
+    if (loading) {
+        return <div className="text-center py-24 animate-fade-in text-slate-400">Chargement...</div>
+    }
 
     if (!f) {
         return (
@@ -43,11 +42,34 @@ export default function FormationDetail() {
         )
     }
 
+    const titre = f.titre || f.title || f.nom || ''
+    const description = f.description || ''
+    const etablissement = f.etablissement || f.institution || ''
+    const coordinateur = f.coordinateur || f.coordinator || ''
+    const inscriptions = regStatus?.is_open ?? f.inscriptions_ouvertes ?? f.inscriptions ?? false
+    const dateOuverture = regStatus?.start_date || f.date_ouverture || f.dateOuverture || ''
+    const dateFermeture = regStatus?.end_date || f.date_fermeture || f.dateFermeture || ''
+    const duree = f.duration_hours ? `${f.duration_hours}h` : (f.duree || '')
+    const prix = f.price ? `${Number(f.price).toLocaleString('fr-FR')} MAD` : (f.frais || '')
+    const places = f.capacity || f.places || ''
+
+    const infoFields = [
+        { label: 'Statut', value: f.status || f.etat || '' },
+        { label: 'Durée', value: duree },
+        { label: 'Frais', value: prix },
+        { label: 'Places', value: places ? `${places} places` : '' },
+    ]
+
+    const dateFields = [
+        { label: 'Ouverture', value: dateOuverture ? new Date(dateOuverture).toLocaleDateString('fr-FR') : '' },
+        { label: 'Fermeture', value: dateFermeture ? new Date(dateFermeture).toLocaleDateString('fr-FR') : '' },
+    ]
+
     return (
         <div className="animate-fade-in bg-slate-50 min-h-screen pb-10">
-            <PageHeader title={f.titre} subtitle={`🏛️ ${f.etablissement} — Coordinateur : ${f.coordinateur}`}>
-                <Badge color={f.inscriptions ? 'green' : 'red'} className="mb-4">
-                    {f.inscriptions ? '✅ Inscriptions ouvertes' : '⛔ Inscriptions fermées'}
+            <PageHeader title={titre} subtitle={`🏛️ ${etablissement}${coordinateur ? ` — Coordinateur : ${coordinateur}` : ''}`}>
+                <Badge color={inscriptions ? 'green' : 'red'} className="mb-4">
+                    {inscriptions ? '✅ Inscriptions ouvertes' : '⛔ Inscriptions fermées'}
                 </Badge>
             </PageHeader>
 
@@ -55,7 +77,23 @@ export default function FormationDetail() {
                 <div className="lg:col-span-3">
                     <Card className="p-8 border-slate-200">
                         <h2 className="text-xl font-bold text-brand-900 mb-4 uppercase tracking-widest text-sm border-b border-slate-100 pb-2">📝 Description</h2>
-                        <p className="text-slate-600 leading-relaxed">{f.description}</p>
+                        <p className="text-slate-600 leading-relaxed">{description}</p>
+                        {f.objectives && (
+                            <div className="mt-6">
+                                <h3 className="font-bold text-brand-900 mb-2 text-sm uppercase tracking-widest">🎯 Objectifs</h3>
+                                <ul className="list-disc list-inside text-slate-600 space-y-1 text-sm">
+                                    {(Array.isArray(f.objectives) ? f.objectives : [f.objectives]).map((o, i) => (
+                                        <li key={i}>{o}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {f.target_audience && (
+                            <div className="mt-6">
+                                <h3 className="font-bold text-brand-900 mb-2 text-sm uppercase tracking-widest">👥 Public cible</h3>
+                                <p className="text-slate-600 text-sm">{f.target_audience}</p>
+                            </div>
+                        )}
                     </Card>
                 </div>
 
@@ -64,16 +102,16 @@ export default function FormationDetail() {
                         <div>
                             <h3 className="font-bold text-brand-900 mb-4 uppercase tracking-widest text-sm border-b border-slate-100 pb-2">ℹ️ Informations</h3>
                             <div className="divide-y divide-slate-100">
-                                {infoFields(f).map(row => <InfoRow key={row.label} {...row} />)}
+                                {infoFields.map(row => <InfoRow key={row.label} {...row} />)}
                             </div>
                         </div>
                         <div>
                             <div className="divide-y divide-slate-100">
-                                {dateFields(f).map(row => <InfoRow key={row.label} {...row} />)}
+                                {dateFields.map(row => <InfoRow key={row.label} {...row} />)}
                             </div>
                         </div>
                         <div className="mt-4">
-                            {f.inscriptions ? (
+                            {inscriptions ? (
                                 <Button to="/inscription" variant="accent" full>✏️ Postuler maintenant</Button>
                             ) : (
                                 <Button variant="outline" full disabled>⛔ Inscriptions fermées</Button>

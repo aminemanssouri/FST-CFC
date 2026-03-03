@@ -1,15 +1,7 @@
 import { useState } from 'react'
 import { useToast } from '../components/ui/Toast'
 import { Modal, Input, Select, Button } from '../components/ui'
-
-const etablissementOptions = [
-    { value: 'FST-BM', label: 'FST Béni Mellal' },
-    { value: 'FEG-BM', label: 'FEG Béni Mellal' },
-    { value: 'ENSA-KH', label: 'ENSA Khouribga' },
-    { value: 'ENCG-BM', label: 'ENCG Béni Mellal' },
-    { value: 'EST-BM', label: 'EST Béni Mellal' },
-    { value: 'FP-BM', label: 'FP Béni Mellal' },
-]
+import { institutionApi } from '../api'
 
 const diplomeOptions = [
     { value: 'LP', label: 'Licence Professionnelle' },
@@ -18,28 +10,47 @@ const diplomeOptions = [
     { value: 'DU', label: "Diplôme d'Université" },
 ]
 
-export default function FormationForm({ isOpen, onClose, formation = null }) {
+export default function FormationForm({ isOpen, onClose, formation = null, onSaved }) {
     const toast = useToast()
     const isEdit = !!formation
+    const [saving, setSaving] = useState(false)
 
     const [form, setForm] = useState({
-        titre: formation?.titre || '',
+        titre: formation?.titre || formation?.title || '',
         description: formation?.description || '',
-        etablissement: formation?.etablissement || '',
         diplome: formation?.diplome || '',
-        duree: formation?.duree || '',
-        frais: formation?.frais || '',
-        places: formation?.places || '',
-        dateOuverture: formation?.dateOuverture || '',
-        dateFermeture: formation?.dateFermeture || '',
+        duree: formation?.duration_hours || formation?.duree || '',
+        frais: formation?.price || formation?.frais || '',
+        places: formation?.capacity || formation?.places || '',
     })
 
     const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        toast.success(isEdit ? 'Formation modifiée avec succès !' : 'Formation créée avec succès !')
-        onClose()
+        setSaving(true)
+        try {
+            const payload = {
+                title: form.titre,
+                description: form.description,
+                duration_hours: form.duree ? Number(form.duree) : undefined,
+                price: form.frais ? Number(form.frais) : undefined,
+                capacity: form.places ? Number(form.places) : undefined,
+            }
+            if (isEdit) {
+                await institutionApi.updateFormation(formation.id, payload)
+                toast.success('Formation modifiée avec succès !')
+            } else {
+                await institutionApi.createFormation(payload)
+                toast.success('Formation créée avec succès !')
+            }
+            if (onSaved) onSaved()
+            onClose()
+        } catch (err) {
+            toast.error(err.message || 'Erreur lors de l\'enregistrement.')
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
@@ -59,24 +70,14 @@ export default function FormationForm({ isOpen, onClose, formation = null }) {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Select label="Établissement" placeholder="— Sélectionner —" options={etablissementOptions} value={form.etablissement} onChange={e => update('etablissement', e.target.value)} required />
-                    <Select label="Type de diplôme" placeholder="— Sélectionner —" options={diplomeOptions} value={form.diplome} onChange={e => update('diplome', e.target.value)} required />
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Input label="Durée" placeholder="Ex: 2 ans" value={form.duree} onChange={e => update('duree', e.target.value)} required />
-                    <Input label="Frais (MAD/an)" type="number" placeholder="15000" value={form.frais} onChange={e => update('frais', e.target.value)} required />
-                    <Input label="Places disponibles" type="number" placeholder="40" value={form.places} onChange={e => update('places', e.target.value)} required />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input type="date" label="Date d'ouverture" value={form.dateOuverture} onChange={e => update('dateOuverture', e.target.value)} required />
-                    <Input type="date" label="Date de fermeture" value={form.dateFermeture} onChange={e => update('dateFermeture', e.target.value)} required />
+                    <Input label="Durée (heures)" type="number" placeholder="300" value={form.duree} onChange={e => update('duree', e.target.value)} />
+                    <Input label="Frais (MAD)" type="number" placeholder="15000" value={form.frais} onChange={e => update('frais', e.target.value)} />
+                    <Input label="Places disponibles" type="number" placeholder="40" value={form.places} onChange={e => update('places', e.target.value)} />
                 </div>
 
                 <div className="flex gap-3 pt-2 border-t border-slate-100">
-                    <Button type="submit" full>{isEdit ? '💾 Enregistrer' : '➕ Créer la formation'}</Button>
+                    <Button type="submit" full disabled={saving}>{saving ? 'Enregistrement...' : isEdit ? '💾 Enregistrer' : '➕ Créer la formation'}</Button>
                     <Button type="button" variant="outline" full onClick={onClose}>Annuler</Button>
                 </div>
             </form>

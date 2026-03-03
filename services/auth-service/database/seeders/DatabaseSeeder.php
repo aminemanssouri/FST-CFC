@@ -25,6 +25,54 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Admin FST Marrakech (establishment_id = 1)
+        User::firstOrCreate(
+            ['email' => 'admin.marrakech@cfc.local'],
+            [
+                'name' => 'Admin FST Marrakech',
+                'password' => Hash::make('password'),
+                'role' => User::ROLE_ESTABLISHMENT_ADMIN,
+                'establishment_id' => 1,
+                'is_active' => true,
+            ]
+        );
+
+        // Admin FST Beni Mellal (establishment_id = 2)
+        User::firstOrCreate(
+            ['email' => 'admin.benimellal@cfc.local'],
+            [
+                'name' => 'Admin FST Béni Mellal',
+                'password' => Hash::make('password'),
+                'role' => User::ROLE_ESTABLISHMENT_ADMIN,
+                'establishment_id' => 2,
+                'is_active' => true,
+            ]
+        );
+
+        // Coordinator FST Beni Mellal
+        User::firstOrCreate(
+            ['email' => 'coord.benimellal@cfc.local'],
+            [
+                'name' => 'Coordinateur FST Béni Mellal',
+                'password' => Hash::make('password'),
+                'role' => User::ROLE_COORDINATOR,
+                'establishment_id' => 2,
+                'is_active' => true,
+            ]
+        );
+
+        // Admin FST Settat (establishment_id = 3)
+        User::firstOrCreate(
+            ['email' => 'admin.settat@cfc.local'],
+            [
+                'name' => 'Admin FST Settat',
+                'password' => Hash::make('password'),
+                'role' => User::ROLE_ESTABLISHMENT_ADMIN,
+                'establishment_id' => 3,
+                'is_active' => true,
+            ]
+        );
+
         // Create default global configurations
         GlobalConfiguration::setValue(
             'system_name',

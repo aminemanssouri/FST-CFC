@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { PageHeader, Card, Badge, Button } from '../components/ui'
+import { applicationApi } from '../api'
 
-const allNotifications = [
-    { id: 1, type: 'success', title: 'Dossier accepté', message: 'Votre candidature à la Licence en Informatique a été acceptée. Veuillez finaliser votre inscription.', date: '2026-02-20', read: false },
-    { id: 2, type: 'info', title: 'Dossier en cours de validation', message: 'Votre dossier pour le Master en Data Science est en cours d\'examen par l\'administration.', date: '2026-02-18', read: false },
-    { id: 3, type: 'warning', title: 'Document manquant', message: 'Veuillez ajouter une copie certifiée de votre diplôme pour compléter votre dossier.', date: '2026-02-15', read: true },
-    { id: 4, type: 'info', title: 'Nouvelle formation disponible', message: 'Le Master en Intelligence Artificielle est maintenant ouvert aux inscriptions à la FST Béni Mellal.', date: '2026-02-10', read: true },
-    { id: 5, type: 'error', title: 'Dossier refusé', message: 'Votre candidature au DUT en Réseaux a été refusée. Motif : diplôme non conforme.', date: '2026-02-05', read: true },
-    { id: 6, type: 'info', title: 'Rappel de fermeture', message: 'Les inscriptions à la Licence en Commerce International ferment le 31 août 2026.', date: '2026-02-01', read: true },
-]
+const etatNotif = {
+    PREINSCRIPTION: { type: 'info', title: 'Pré-inscription créée', msg: 'Votre pré-inscription a été enregistrée. Veuillez compléter votre dossier.' },
+    DOSSIER_SOUMIS: { type: 'info', title: 'Dossier soumis', msg: 'Votre dossier a été soumis et est en attente d\'examen.' },
+    EN_VALIDATION:  { type: 'warning', title: 'Dossier en validation', msg: 'Votre dossier est en cours d\'examen par l\'administration.' },
+    ACCEPTE:        { type: 'success', title: 'Candidature acceptée', msg: 'Félicitations ! Votre candidature a été acceptée.' },
+    REFUSE:         { type: 'error', title: 'Candidature refusée', msg: 'Votre candidature a été refusée.' },
+    INSCRIT:        { type: 'success', title: 'Inscription confirmée', msg: 'Votre inscription est confirmée.' },
+}
 
 const typeIcons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' }
 const typeBg = {
@@ -19,11 +21,52 @@ const typeBg = {
 }
 
 export default function Notifications() {
-    const [notifications, setNotifications] = useState(allNotifications)
+    const { user } = useAuth()
+    const [notifications, setNotifications] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    // Read state from localStorage
+    const getReadIds = () => {
+        try { return JSON.parse(localStorage.getItem('read_notifs') || '[]') } catch { return [] }
+    }
+    const saveReadIds = (ids) => localStorage.setItem('read_notifs', JSON.stringify(ids))
+
+    useEffect(() => {
+        if (!user?.id) { setLoading(false); return }
+        applicationApi.getInscriptions({ candidat_id: user.id })
+            .then(data => {
+                const list = data.data || data || []
+                const readIds = getReadIds()
+                const notifs = list.map(ins => {
+                    const cfg = etatNotif[ins.etat] || { type: 'info', title: ins.etat, msg: '' }
+                    const notifId = `ins-${ins.id}-${ins.etat}`
+                    return {
+                        id: notifId,
+                        type: cfg.type,
+                        title: cfg.title,
+                        message: `${cfg.msg} (Formation #${ins.formation_id})`,
+                        date: ins.updated_at || ins.created_at || '',
+                        read: readIds.includes(notifId),
+                    }
+                })
+                setNotifications(notifs.sort((a, b) => new Date(b.date) - new Date(a.date)))
+            })
+            .catch(() => setNotifications([]))
+            .finally(() => setLoading(false))
+    }, [user?.id])
+
     const unread = notifications.filter(n => !n.read).length
 
-    const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    const markRead = (id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    const markAllRead = () => {
+        const allIds = notifications.map(n => n.id)
+        saveReadIds(allIds)
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    }
+    const markRead = (id) => {
+        const readIds = getReadIds()
+        if (!readIds.includes(id)) { readIds.push(id); saveReadIds(readIds) }
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    }
 
     return (
         <div className="animate-fade-in bg-slate-50 min-h-screen pb-12">
@@ -49,6 +92,11 @@ export default function Notifications() {
                         )}
                     </div>
 
+                    {loading ? (
+                        <div className="text-center py-12 text-slate-400">Chargement des notifications…</div>
+                    ) : notifications.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">Aucune notification pour le moment.</div>
+                    ) : (
                     <div className="space-y-4">
                         {notifications.map(n => (
                             <div
@@ -71,7 +119,7 @@ export default function Notifications() {
                                             </h3>
                                             <div className="flex items-center gap-2 shrink-0">
                                                 {!n.read && <span className="w-2.5 h-2.5 rounded-full bg-brand-500" />}
-                                                <span className="text-xs font-bold text-slate-500 bg-white px-2 py-1 rounded shadow-sm">{n.date}</span>
+                                                <span className="text-xs font-bold text-slate-500 bg-white px-2 py-1 rounded shadow-sm">{n.date ? new Date(n.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
                                             </div>
                                         </div>
                                         <p className={`text-sm leading-relaxed ${!n.read ? 'text-slate-800' : 'text-slate-600'}`}>{n.message}</p>
@@ -80,6 +128,7 @@ export default function Notifications() {
                             </div>
                         ))}
                     </div>
+                    )}
                 </Card>
             </div>
         </div>

@@ -22,7 +22,8 @@ class VerifyServiceToken
 
         try {
             $response = Http::withToken($token)
-                ->timeout(5)
+                ->timeout(15)
+                ->retry(2, 500)
                 ->get(config('services.auth.url', 'http://auth-service:8000') . '/api/validate-token');
 
             if (!$response->successful()) {

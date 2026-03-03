@@ -1,6 +1,9 @@
 # ---- Build Stage ----
 FROM golang:1.23-alpine AS build
 RUN apk add --no-cache git
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GONOSUMDB=*
+ENV GOFLAGS=-mod=mod
 WORKDIR /app
 COPY go.mod ./
 COPY . .

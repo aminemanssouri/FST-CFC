@@ -1,0 +1,1055 @@
+{
+  "info": {
+    "name": "FST-CFC Microservices",
+    "_postman_id": "fst-cfc-collection-v1",
+    "description": "Complete API test collection for all FST-CFC microservices.\n\n## How to use\n1. Import this file into Postman.\n2. Import the environment file `FST-CFC.postman_environment.json`.\n3. Select the **FST-CFC Local** environment.\n4. Run **Auth / Login** first — the token is saved automatically to `{{TOKEN}}`.\n5. All protected requests will use `{{TOKEN}}` in the Authorization header.\n\n## Architecture notes\n- All requests go via the **API Gateway** on `http://localhost:3001` unless noted.\n- **Application Service** (Go) and **Program Service** (Go) must be tested DIRECTLY because the gateway path mismatch (`/api/applications` vs `/inscriptions`).\n- Document Service has a rewrite rule so it works through the gateway.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "GATEWAY", "value": "http://localhost:3001", "type": "string" },
+    { "key": "AUTH_DIRECT", "value": "http://localhost:8001", "type": "string" },
+    { "key": "INSTITUTION_DIRECT", "value": "http://localhost:8002", "type": "string" },
+    { "key": "APPLICATION_DIRECT", "value": "http://localhost:3005", "type": "string" },
+    { "key": "PROGRAM_DIRECT", "value": "http://localhost:3004", "type": "string" },
+    { "key": "DOCUMENT_DIRECT", "value": "http://localhost:3006", "type": "string" },
+    { "key": "NOTIFICATION_DIRECT", "value": "http://localhost:3007", "type": "string" },
+    { "key": "REPORTING_DIRECT", "value": "http://localhost:3010", "type": "string" },
+    { "key": "TOKEN", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health Checks",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health",
+            "description": "Check the Nginx API Gateway is running."
+          }
+        },
+        {
+          "name": "Auth Service Health",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health/auth"
+          }
+        },
+        {
+          "name": "Institution Service Health",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health/institution"
+          }
+        },
+        {
+          "name": "Application Service Health",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health/application"
+          }
+        },
+        {
+          "name": "Document Service Health",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health/document"
+          }
+        },
+        {
+          "name": "Notification Service Health",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health/notification"
+          }
+        },
+        {
+          "name": "Reporting Service Health",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health/reporting"
+          }
+        },
+        {
+          "name": "Program Service Health (via Gateway)",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health/program"
+          }
+        },
+        {
+          "name": "Program Service Health (Direct :3004)",
+          "request": {
+            "method": "GET",
+            "url": "{{PROGRAM_DIRECT}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth Service (via Gateway)",
+      "description": "Auth service runs at http://localhost:8001 and is also accessible via the gateway at http://localhost:3001/api/*",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{GATEWAY}}/api/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@fst-cfc.local\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            },
+            "description": "Register a new user. Roles: candidat, establishment_admin, coordinator, super_admin"
+          }
+        },
+        {
+          "name": "Register — Admin Établissement",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{GATEWAY}}/api/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin Etablissement\",\n  \"email\": \"admin@fst-cfc.local\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"establishment_admin\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register — Coordinator",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{GATEWAY}}/api/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Coordinator User\",\n  \"email\": \"coordinator@fst-cfc.local\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"coordinator\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login ★ (saves token automatically)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('TOKEN', json.token);",
+                  "    pm.environment.set('TOKEN', json.token);",
+                  "    console.log('Token saved:', json.token.slice(0,30) + '...');",
+                  "} else if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('TOKEN', json.data.token);",
+                  "    pm.environment.set('TOKEN', json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{GATEWAY}}/api/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@fst-cfc.local\",\n  \"password\": \"password123\"\n}"
+            },
+            "description": "Login and automatically save the JWT to {{TOKEN}}. Run this before any protected request."
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/profile"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Validate Token (internal)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/validate-token"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/logout"
+          }
+        },
+        {
+          "name": "[Super Admin] List Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/users"
+          }
+        },
+        {
+          "name": "[Super Admin] Get User",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/users/1"
+          }
+        },
+        {
+          "name": "[Super Admin] Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@fst-cfc.local\",\n  \"password\": \"password123\",\n  \"role\": \"establishment_admin\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[Super Admin] Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/users/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"role\": \"coordinator\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[Super Admin] Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/users/1"
+          }
+        },
+        {
+          "name": "[Super Admin] Users by Establishment",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/users/establishment/1"
+          }
+        },
+        {
+          "name": "[Super Admin] List Configurations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/configurations"
+          }
+        },
+        {
+          "name": "[Super Admin] Get Configuration",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/configurations/max_dossiers"
+          }
+        },
+        {
+          "name": "[Super Admin] Create Configuration",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/configurations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"max_dossiers\",\n  \"value\": \"500\",\n  \"description\": \"Maximum number of dossiers per formation\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[Super Admin] Global Reports",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/reports"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏛️ Institution Service (via Gateway)",
+      "description": "Institution service runs at http://localhost:8002, accessible via gateway /api/establishments, /api/formations, etc.",
+      "item": [
+        {
+          "name": "Get Catalog (Public)",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/api/catalog",
+            "description": "Public endpoint — no token required. Returns all published formations."
+          }
+        },
+        {
+          "name": "Get Formation Detail (Public)",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/api/formations/1",
+            "description": "Public endpoint — no token required."
+          }
+        },
+        {
+          "name": "Get Registration Status (Public)",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/api/formations/1/registration-status",
+            "description": "Check if registration is open for a formation."
+          }
+        },
+        {
+          "name": "Get Stats (Public)",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/api/stats"
+          }
+        },
+        {
+          "name": "Get Stats by Establishment (Public)",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/api/stats/establishment/1"
+          }
+        },
+        {
+          "name": "[Super Admin] List Establishments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/establishments"
+          }
+        },
+        {
+          "name": "[Super Admin] Create Establishment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/establishments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Faculté des Sciences et Techniques\",\n  \"code\": \"FST\",\n  \"city\": \"Marrakech\",\n  \"address\": \"Avenue Abdelkrim Khattabi\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[Super Admin] Update Establishment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/establishments/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"FST Updated\",\n  \"city\": \"Casablanca\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[Super Admin] Delete Establishment",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/establishments/1"
+          }
+        },
+        {
+          "name": "[Admin] List Formations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/formations"
+          }
+        },
+        {
+          "name": "[Admin] Formations by Establishment",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/establishments/1/formations"
+          }
+        },
+        {
+          "name": "[Admin] Create Formation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/formations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Formation CFC Informatique\",\n  \"description\": \"Formation de qualification professionnelle en informatique\",\n  \"establishment_id\": 1,\n  \"duration_months\": 12,\n  \"max_candidates\": 30\n}"
+            }
+          }
+        },
+        {
+          "name": "[Admin] Update Formation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/formations/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Formation CFC Informatique v2\",\n  \"max_candidates\": 40\n}"
+            }
+          }
+        },
+        {
+          "name": "[Admin] Publish Formation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/formations/1/publish"
+          }
+        },
+        {
+          "name": "[Admin] Archive Formation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/formations/1/archive"
+          }
+        },
+        {
+          "name": "[Admin] Delete Formation",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/formations/1"
+          }
+        },
+        {
+          "name": "[Coordinator] Get Registration Period",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/formations/1/registration-period"
+          }
+        },
+        {
+          "name": "[Coordinator] Create Registration Period",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/formations/1/registration-period",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-06-30\",\n  \"max_applications\": 50\n}"
+            }
+          }
+        },
+        {
+          "name": "[Coordinator] Open Registration",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/formations/1/registration-period/open"
+          }
+        },
+        {
+          "name": "[Coordinator] Close Registration",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/formations/1/registration-period/close"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Application Service — DIRECT :3005",
+      "description": "⚠️ NOTE: The API Gateway routes /api/applications to http://application-service:3005 WITHOUT a path rewrite, but the Go service uses /inscriptions. Test this service DIRECTLY on port 3005.\n\nJWT roles used: CANDIDAT, ADMIN_ETABLISSEMENT, COORDINATEUR",
+      "item": [
+        {
+          "name": "Health (Direct)",
+          "request": {
+            "method": "GET",
+            "url": "{{APPLICATION_DIRECT}}/health"
+          }
+        },
+        {
+          "name": "[ADMIN/COORD] List All Inscriptions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{APPLICATION_DIRECT}}/inscriptions",
+            "description": "Requires role ADMIN_ETABLISSEMENT or COORDINATEUR"
+          }
+        },
+        {
+          "name": "[Any] Get Single Inscription",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{APPLICATION_DIRECT}}/inscriptions/1",
+            "description": "Owner can see their own. Admin can see all."
+          }
+        },
+        {
+          "name": "[CANDIDAT] Create Inscription (Apply)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{APPLICATION_DIRECT}}/inscriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"formation_id\": 1,\n  \"notes\": \"Je souhaite m'inscrire à cette formation.\"\n}"
+            },
+            "description": "Requires role CANDIDAT. Creates a new application (inscription) in PREINSCRIPTION state."
+          }
+        },
+        {
+          "name": "[ADMIN] Transition State",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{APPLICATION_DIRECT}}/inscriptions/1/transition",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"DOSSIER_SOUMIS\",\n  \"comment\": \"Dossier accepté pour traitement\"\n}"
+            },
+            "description": "Requires ADMIN_ETABLISSEMENT. Valid transitions: PREINSCRIPTION → DOSSIER_SOUMIS → EN_COURS_VALIDATION → ACCEPTE / REFUSE → INSCRIT"
+          }
+        },
+        {
+          "name": "[ADMIN] Transition — Accept",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{APPLICATION_DIRECT}}/inscriptions/1/transition",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"ACCEPTE\",\n  \"comment\": \"Dossier validé\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[ADMIN] Transition — Refuse",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{APPLICATION_DIRECT}}/inscriptions/1/transition",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"REFUSE\",\n  \"comment\": \"Dossier incomplet\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📄 Document Service (via Gateway + Direct :3006)",
+      "description": "Document service works via the gateway: /api/documents → /documents (nginx rewrite). Also testable directly on port 3006.",
+      "item": [
+        {
+          "name": "Health (Direct)",
+          "request": {
+            "method": "GET",
+            "url": "{{DOCUMENT_DIRECT}}/health"
+          }
+        },
+        {
+          "name": "[ADMIN/COORD] List Documents (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/documents"
+          }
+        },
+        {
+          "name": "[ADMIN/COORD] List Documents (Direct)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{DOCUMENT_DIRECT}}/documents"
+          }
+        },
+        {
+          "name": "[Any] Get Document by ID (Direct)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{DOCUMENT_DIRECT}}/documents/1"
+          }
+        },
+        {
+          "name": "[CANDIDAT] Upload Document (Direct)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{DOCUMENT_DIRECT}}/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "Select a PDF or image file"
+                },
+                {
+                  "key": "inscription_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "type",
+                  "value": "CIN",
+                  "type": "text",
+                  "description": "Document type: CIN, DIPLOME, PHOTO, etc."
+                }
+              ]
+            },
+            "description": "Requires role CANDIDAT. Uploads file to MinIO S3 bucket 'documents'."
+          }
+        },
+        {
+          "name": "[Any] Download Document (Direct)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{DOCUMENT_DIRECT}}/documents/1/download",
+            "description": "Returns a pre-signed MinIO URL valid for 15 minutes."
+          }
+        },
+        {
+          "name": "[ADMIN] Delete Document (Direct)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{DOCUMENT_DIRECT}}/documents/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notification Service (via Gateway + Direct :3007)",
+      "description": "NestJS service. Sends emails via SMTP (MailHog on localhost:8025). Requires Idempotency-Key header.",
+      "item": [
+        {
+          "name": "Health (Direct)",
+          "request": {
+            "method": "GET",
+            "url": "{{NOTIFICATION_DIRECT}}/health"
+          }
+        },
+        {
+          "name": "Send Notification (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "notif-test-001", "description": "Required! Unique key to prevent duplicate sends." },
+              { "key": "X-Correlation-Id", "value": "corr-test-001", "description": "Optional tracing ID" }
+            ],
+            "url": "{{GATEWAY}}/api/notifications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateKey\": \"welcome\",\n  \"language\": \"fr\",\n  \"recipient\": \"test@fst-cfc.local\",\n  \"payload\": {\n    \"name\": \"Test User\",\n    \"formation\": \"CFC Informatique\"\n  }\n}"
+            },
+            "description": "After sending, check MailHog at http://localhost:8025 to see the email."
+          }
+        },
+        {
+          "name": "Send Notification (Direct)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "notif-test-002" }
+            ],
+            "url": "{{NOTIFICATION_DIRECT}}/notifications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateKey\": \"welcome\",\n  \"language\": \"fr\",\n  \"recipient\": \"candidate@fst-cfc.local\",\n  \"payload\": {\n    \"name\": \"Candidate Name\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Notification by ID (Direct)",
+          "request": {
+            "method": "GET",
+            "url": "{{NOTIFICATION_DIRECT}}/notifications/NOTIFICATION_ID_HERE",
+            "description": "Get stored notification status by MongoDB ObjectId"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Reporting Analytics (via Gateway + Direct :3010)",
+      "description": "⚠️ Uses mock auth via query param ?role=... instead of JWT. Nginx maps /api/analytics → /api/reports on this service.",
+      "item": [
+        {
+          "name": "Health (Direct)",
+          "request": {
+            "method": "GET",
+            "url": "{{REPORTING_DIRECT}}/health"
+          }
+        },
+        {
+          "name": "Example Report — no auth (Direct)",
+          "request": {
+            "method": "GET",
+            "url": "{{REPORTING_DIRECT}}/reports/example",
+            "description": "Demo endpoint with seeded data. No auth required."
+          }
+        },
+        {
+          "name": "[Super Admin] Global Stats (Direct)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{REPORTING_DIRECT}}/api/reports/global?role=SUPER_ADMIN&fromDate=2024-01-01&toDate=2026-12-31",
+              "host": ["{{REPORTING_DIRECT}}"],
+              "path": ["api", "reports", "global"],
+              "query": [
+                { "key": "role", "value": "SUPER_ADMIN" },
+                { "key": "fromDate", "value": "2024-01-01" },
+                { "key": "toDate", "value": "2026-12-31" }
+              ]
+            },
+            "description": "Pass role as query param (mock auth)"
+          }
+        },
+        {
+          "name": "[Admin] Institution Stats (Direct)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{REPORTING_DIRECT}}/api/reports/institution/inst-demo?role=ADMIN_ETABLISSEMENT&institutionId=inst-demo",
+              "host": ["{{REPORTING_DIRECT}}"],
+              "path": ["api", "reports", "institution", "inst-demo"],
+              "query": [
+                { "key": "role", "value": "ADMIN_ETABLISSEMENT" },
+                { "key": "institutionId", "value": "inst-demo" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "[Coordinator] Program Stats (Direct)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{REPORTING_DIRECT}}/api/reports/program/prog-demo?role=COORDINATEUR&programIds=prog-demo",
+              "host": ["{{REPORTING_DIRECT}}"],
+              "path": ["api", "reports", "program", "prog-demo"],
+              "query": [
+                { "key": "role", "value": "COORDINATEUR" },
+                { "key": "programIds", "value": "prog-demo" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "[Super Admin] Global Stats via Gateway",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{GATEWAY}}/api/analytics/global?role=SUPER_ADMIN&fromDate=2024-01-01&toDate=2026-12-31",
+              "host": ["{{GATEWAY}}"],
+              "path": ["api", "analytics", "global"],
+              "query": [
+                { "key": "role", "value": "SUPER_ADMIN" },
+                { "key": "fromDate", "value": "2024-01-01" },
+                { "key": "toDate", "value": "2026-12-31" }
+              ]
+            },
+            "description": "Nginx rewrites /api/analytics/* → /api/reports/* on reporting service"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📐 Program Service (Gateway + Direct :3004)",
+      "description": "Accessible via the gateway under /api/programme/* (prefixed to avoid conflict with institution-service /api/formations).\n\nGateway routes:\n  GET  /api/programme/catalogue\n  *    /api/programme/formations/**\n  POST /api/programme/internal/jobs/close-registrations\n\nJWT roles: ADMIN_ETABLISSEMENT, COORDINATEUR, CANDIDAT, SYSTEM",
+      "item": [
+        {
+          "name": "Health (via Gateway)",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/health/program"
+          }
+        },
+        {
+          "name": "Health (Direct)",
+          "request": {
+            "method": "GET",
+            "url": "{{PROGRAM_DIRECT}}/health"
+          }
+        },
+        {
+          "name": "Get Catalogue — Public (via Gateway)",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/api/programme/catalogue",
+            "description": "Public — no token required. Gateway rewrites /api/programme/catalogue → /catalogue"
+          }
+        },
+        {
+          "name": "[Admin] List Formations (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/programme/formations"
+          }
+        },
+        {
+          "name": "[Admin] Get Formation (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/programme/formations/1"
+          }
+        },
+        {
+          "name": "[ADMIN_ETABLISSEMENT] Create Formation (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/programme/formations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Technicien Spécialisé Développement Informatique\",\n  \"description\": \"Formation TS en développement web et mobile\",\n  \"establishment_id\": 1,\n  \"duration_months\": 24,\n  \"max_candidates\": 25\n}"
+            }
+          }
+        },
+        {
+          "name": "[ADMIN_ETABLISSEMENT] Update Formation (via Gateway)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/programme/formations/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"TS Dev Info Updated\",\n  \"max_candidates\": 30\n}"
+            }
+          }
+        },
+        {
+          "name": "[ADMIN_ETABLISSEMENT] Publish Formation (via Gateway)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/programme/formations/1/publish"
+          }
+        },
+        {
+          "name": "[ADMIN_ETABLISSEMENT] Archive Formation (via Gateway)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/programme/formations/1/archive"
+          }
+        },
+        {
+          "name": "[COORDINATEUR] Update Registrations (via Gateway)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{GATEWAY}}/api/programme/formations/1/registrations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_date\": \"2026-03-01\",\n  \"end_date\": \"2026-05-31\",\n  \"max_applications\": 30\n}"
+            }
+          }
+        },
+        {
+          "name": "[COORDINATEUR] Close Registrations (via Gateway)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/programme/formations/1/close-registrations"
+          }
+        },
+        {
+          "name": "[CANDIDAT] Check Eligibility (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/programme/formations/1/eligibility"
+          }
+        },
+        {
+          "name": "[ADMIN_ETABLISSEMENT] Delete Formation (via Gateway)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/programme/formations/1"
+          }
+        },
+        {
+          "name": "[SYSTEM] Close Expired Registrations (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{GATEWAY}}/api/programme/internal/jobs/close-registrations",
+            "description": "Requires SYSTEM role JWT. Called by scheduler-job service."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔁 End-to-End Flow",
+      "description": "Run these in order to simulate the full candidate registration workflow:\n1. Login as candidate → get token\n2. Browse catalog → find formation\n3. Apply (create inscription)\n4. Upload documents\n5. Admin: review + transition inscription state\n6. Notification sent → check MailHog",
+      "item": [
+        {
+          "name": "E2E Step 1 — Login as Candidate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const token = json.token || (json.data && json.data.token);",
+                  "if (token) {",
+                  "    pm.collectionVariables.set('TOKEN', token);",
+                  "    pm.environment.set('TOKEN', token);",
+                  "    console.log('✅ Candidate token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{GATEWAY}}/api/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@fst-cfc.local\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "E2E Step 2 — Browse Catalog",
+          "request": {
+            "method": "GET",
+            "url": "{{GATEWAY}}/api/catalog",
+            "description": "Find a formation ID to apply to."
+          }
+        },
+        {
+          "name": "E2E Step 3 — Apply to Formation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{APPLICATION_DIRECT}}/inscriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"formation_id\": 1,\n  \"notes\": \"Candidature pour la formation CFC.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "E2E Step 4 — Upload CIN Document",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }],
+            "url": "{{DOCUMENT_DIRECT}}/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "description": "Your CIN scan" },
+                { "key": "inscription_id", "value": "1", "type": "text" },
+                { "key": "type", "value": "CIN", "type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "E2E Step 5 — Admin: Submit Dossier",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{APPLICATION_DIRECT}}/inscriptions/1/transition",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"DOSSIER_SOUMIS\"\n}"
+            },
+            "description": "Login as establishment_admin first and update {{TOKEN}}"
+          }
+        },
+        {
+          "name": "E2E Step 6 — Check MailHog for Email",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8025/api/v2/messages",
+            "description": "MailHog API — lists all caught emails sent by the notification service."
+          }
+        }
+      ]
+    }
+  ]
+}

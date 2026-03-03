@@ -17,8 +17,8 @@ func Setup(r *gin.Engine, ih *handler.InscriptionHandler, jwtSecret string) {
 	auth := r.Group("/inscriptions")
 	auth.Use(middleware.AuthMiddleware(jwtSecret))
 	{
-		// List inscriptions (Admin sees all, candidat sees own)
-		auth.GET("", middleware.RequireRole("ADMIN_ETABLISSEMENT", "COORDINATEUR"), ih.List)
+		// List inscriptions (Admin sees all; candidat filters by ?candidat_id=)
+		auth.GET("", middleware.RequireRole("ADMIN_ETABLISSEMENT", "COORDINATEUR", "CANDIDAT"), ih.List)
 
 		// Get single inscription (owner or admin)
 		auth.GET("/:id", ih.Get)
