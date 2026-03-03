@@ -1,12 +1,18 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Button } from './ui'
 
 export default function Navbar() {
     const location = useLocation()
+    const navigate = useNavigate()
     const { user, isAuthenticated, isCandidat, isAdmin, isSuperAdmin, logout } = useAuth()
     const [mobileOpen, setMobileOpen] = useState(false)
+
+    const handleLogout = async () => {
+        await logout()
+        navigate('/login', { replace: true })
+    }
 
     const isActive = (path) => location.pathname === path
 
@@ -58,7 +64,7 @@ export default function Navbar() {
                                 <span className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs">👤</span>
                                 {user.nom}
                             </Link>
-                            <Button variant="outline" size="sm" onClick={logout}>Déconnexion</Button>
+                            <Button variant="outline" size="sm" onClick={handleLogout}>Déconnexion</Button>
                         </>
                     ) : (
                         <>
@@ -95,7 +101,7 @@ export default function Navbar() {
                                     <Link to="/profil" className={mobileLinkClass('/profil')} onClick={() => setMobileOpen(false)}>
                                         👤 Mon Profil
                                     </Link>
-                                    <button onClick={() => { logout(); setMobileOpen(false) }} className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold tracking-wider uppercase text-rose-600 hover:bg-rose-50 border border-transparent transition-all">
+                                    <button onClick={() => { handleLogout(); setMobileOpen(false) }} className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold tracking-wider uppercase text-rose-600 hover:bg-rose-50 border border-transparent transition-all">
                                         🚪 Déconnexion
                                     </button>
                                 </>
