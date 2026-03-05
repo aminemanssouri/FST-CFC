@@ -111,6 +111,17 @@ export default function DashboardAdmin() {
         }
     }
 
+    const q = searchQuery.trim().toLowerCase()
+    const matchSearch = (...fields) => !q || fields.some(f => f && String(f).toLowerCase().includes(q))
+
+    const filteredFormations = formationsData.filter(f =>
+        matchSearch(f.title, f.titre, f.nom, f.coordinator, f.coordinateur, f.status)
+    )
+
+    const filteredDossiers = dossiers.filter(d =>
+        matchSearch(d.nom_complet, d.candidat, d.formation, d.etat, (etatConfig[d.etat] || {}).label)
+    )
+
     return (
         <div className="animate-fade-in bg-slate-50 min-h-screen pb-12">
             <PageHeader title="Espace Administration" subtitle={`${(roleDisplay[user?.role] || {}).label || 'Administration'} — Gérez les programmes, les candidatures et analysez les performances.`} />
@@ -136,10 +147,16 @@ export default function DashboardAdmin() {
                                     </Button>
                                 </div>
 
+                                <div className="mb-6">
+                                    <Input placeholder="🔍 Rechercher une formation (titre, responsable, statut...)" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                                </div>
+
                                 <Table columns={['Formation', 'Responsable', 'Statut', 'Portail', 'Candidats', 'Actions']}>
                                     {loadingF ? (
                                         <TableRow><TableCell colSpan={6} className="text-center text-slate-400">Chargement...</TableCell></TableRow>
-                                    ) : formationsData.map(f => {
+                                    ) : filteredFormations.length === 0 ? (
+                                        <TableRow><TableCell colSpan={6} className="text-center text-slate-400 py-8">{q ? 'Aucune formation ne correspond à votre recherche.' : 'Aucune formation.'}</TableCell></TableRow>
+                                    ) : filteredFormations.map(f => {
                                         const status = f.status || 'draft'
                                         const { label, color } = formationEtatConfig[status] || { label: status, color: 'gray' }
                                         const isInscriptions = f.inscriptions_ouvertes ?? f.inscriptions ?? (f.registration_period?.status === 'open')
@@ -190,14 +207,20 @@ export default function DashboardAdmin() {
                                         <p className="text-sm text-slate-500 mt-1">Examinez et traitez les demandes d'inscription reçues.</p>
                                     </div>
                                     <Badge color="amber" className="px-4 py-2 text-sm shadow-sm">
-                                        {dossiers.length} dossier(s) total
+                                        {filteredDossiers.length} dossier(s){q ? ' trouvé(s)' : ' total'}
                                     </Badge>
+                                </div>
+
+                                <div className="mb-6">
+                                    <Input placeholder="🔍 Rechercher un dossier (candidat, formation, statut...)" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                                 </div>
 
                                 <Table columns={['N°', 'Candidat', 'Programme Souhaité', 'Date de Soumission', 'Statut Actuel', 'Décision']}>
                                     {loadingD ? (
                                         <TableRow><TableCell colSpan={6} className="text-center text-slate-400">Chargement...</TableCell></TableRow>
-                                    ) : dossiers.map(d => {
+                                    ) : filteredDossiers.length === 0 ? (
+                                        <TableRow><TableCell colSpan={6} className="text-center text-slate-400 py-8">{q ? 'Aucun dossier ne correspond à votre recherche.' : 'Aucun dossier.'}</TableCell></TableRow>
+                                    ) : filteredDossiers.map(d => {
                                         const etat = d.etat || 'DOSSIER_SOUMIS'
                                         const { label, color } = etatConfig[etat] || { label: etat, color: 'gray' }
                                         const canDecide = etat === 'DOSSIER_SOUMIS' || etat === 'EN_VALIDATION'

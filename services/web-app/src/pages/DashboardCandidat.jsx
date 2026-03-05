@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { PageHeader, Badge, Button, Table, TableRow, TableCell, EmptyState } from '../components/ui'
+import { PageHeader, Badge, Button, Table, TableRow, TableCell, EmptyState, Input } from '../components/ui'
 import { applicationApi } from '../api'
 
 const etatConfig = {
@@ -24,6 +24,7 @@ export default function DashboardCandidat() {
     const location = useLocation()
     const [inscriptions, setInscriptions] = useState([])
     const [loading, setLoading] = useState(true)
+    const [searchQuery, setSearchQuery] = useState('')
 
     useEffect(() => {
         if (!user?.id) return
@@ -32,6 +33,13 @@ export default function DashboardCandidat() {
             .catch(() => setInscriptions([]))
             .finally(() => setLoading(false))
     }, [user?.id])
+
+    const q = searchQuery.trim().toLowerCase()
+    const matchSearch = (...fields) => !q || fields.some(f => f && String(f).toLowerCase().includes(q))
+
+    const filteredInscriptions = inscriptions.filter(ins =>
+        matchSearch(ins.formation, ins.nom_complet, ins.etablissement, ins.etat, (etatConfig[ins.etat] || {}).label)
+    )
 
     return (
         <div className="animate-fade-in bg-slate-50 min-h-screen pb-12">
@@ -86,15 +94,19 @@ export default function DashboardCandidat() {
                                 <p className="text-sm text-slate-500 mt-1">Consultez l'historique et le statut de vos demandes.</p>
                             </div>
                             <Badge color="accent" className="px-4 py-2 text-sm">
-                                {inscriptions.length} dossier(s)
+                                {filteredInscriptions.length} dossier(s){q ? ' trouvé(s)' : ''}
                             </Badge>
+                        </div>
+
+                        <div className="mb-6">
+                            <Input placeholder="🔍 Rechercher (formation, établissement, statut...)" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                         </div>
 
                         {loading ? (
                             <div className="py-12 text-center text-slate-400">Chargement...</div>
-                        ) : inscriptions.length > 0 ? (
+                        ) : filteredInscriptions.length > 0 ? (
                             <Table columns={['Programme Cible', 'Établissement', 'Date de Dépôt', 'Statut Actuel', 'Actions']}>
-                                {inscriptions.map(ins => {
+                                {filteredInscriptions.map(ins => {
                                     const { label, color } = etatConfig[ins.etat] || { label: ins.etat, color: 'gray' }
                                     const dateStr = ins.created_at || ins.date || ''
                                     return (
@@ -114,6 +126,8 @@ export default function DashboardCandidat() {
                                     )
                                 })}
                             </Table>
+                        ) : q ? (
+                            <div className="py-12 text-center text-slate-400">Aucune candidature ne correspond à votre recherche.</div>
                         ) : (
                             <div className="py-12">
                                 <EmptyState icon="📬" title="Aucune candidature en cours" description="Vous n'avez pas encore soumis de dossier d'inscription. Explorez notre catalogue pour trouver la formation qui vous correspond." />
