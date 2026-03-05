@@ -26,14 +26,15 @@ Route::middleware('auth.service:super_admin')->group(function () {
     Route::apiResource('establishments', EstablishmentController::class);
 });
 
-Route::middleware('auth.service:super_admin,establishment_admin')->group(function () {
-    // UC4: Gérer les formations (Admin Établissement)
+Route::middleware('auth.service:super_admin,establishment_admin,coordinator')->group(function () {
+    // UC4: Gérer les formations (Admin Établissement + Coordinateur)
     Route::get('/formations', [FormationController::class, 'index']);
     Route::post('/formations', [FormationController::class, 'store']);
     Route::put('/formations/{formation}', [FormationController::class, 'update']);
     Route::delete('/formations/{formation}', [FormationController::class, 'destroy']);
     Route::post('/formations/{formation}/publish', [FormationController::class, 'publish']);
     Route::post('/formations/{formation}/archive', [FormationController::class, 'archive']);
+    Route::post('/formations/{formation}/unarchive', [FormationController::class, 'unarchive']);
     Route::get('/establishments/{establishmentId}/formations', [FormationController::class, 'byEstablishment']);
 });
 

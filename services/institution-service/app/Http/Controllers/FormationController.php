@@ -20,7 +20,10 @@ class FormationController extends Controller
 
         // Filter by status
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            if ($request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+            // status=all → no filter, return all statuses (for admin dashboards)
         } else {
             // By default, show only published formations for public access
             $query->published();
@@ -193,6 +196,26 @@ class FormationController extends Controller
 
         return response()->json([
             'message' => 'Formation archived successfully',
+            'formation' => $formation->fresh(),
+        ]);
+    }
+
+    /**
+     * Unarchive a formation (back to draft)
+     * UC4: Gérer les formations (Admin Établissement)
+     */
+    public function unarchive(Formation $formation)
+    {
+        if ($formation->status !== Formation::STATUS_ARCHIVED) {
+            return response()->json([
+                'message' => 'Only archived formations can be unarchived',
+            ], 422);
+        }
+
+        $formation->update(['status' => Formation::STATUS_DRAFT]);
+
+        return response()->json([
+            'message' => 'Formation unarchived successfully',
             'formation' => $formation->fresh(),
         ]);
     }

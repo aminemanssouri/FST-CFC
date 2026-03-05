@@ -26,7 +26,7 @@ func Setup(r *gin.Engine, ih *handler.InscriptionHandler, jwtSecret string) {
 		// Create inscription (Candidate — Sequence Diagram B)
 		auth.POST("", middleware.RequireRole("CANDIDAT"), ih.Create)
 
-		// State transition (Admin — Sequence Diagram C)
-		auth.PATCH("/:id/transition", middleware.RequireRole("ADMIN_ETABLISSEMENT"), ih.Transition)
+		// State transition (Admin / Coordinateur — Sequence Diagram C)
+		auth.PATCH("/:id/transition", middleware.RequireRole("ADMIN_ETABLISSEMENT", "COORDINATEUR"), ih.Transition)
 	}
 }

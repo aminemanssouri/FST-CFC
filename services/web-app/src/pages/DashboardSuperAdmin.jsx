@@ -83,7 +83,7 @@ export default function DashboardSuperAdmin() {
     const loadFormations = () => { loadFormationsAsync() }
     const loadFormationsAsync = async () => {
         setLoadingFormations(true)
-        try { const d = await institutionApi.getFormations(); setFormations(d.data || d || []) }
+        try { const d = await institutionApi.getFormations('status=all'); setFormations(d.data || d || []) }
         catch { setFormations([]) }
         finally { setLoadingFormations(false) }
     }
@@ -176,6 +176,7 @@ export default function DashboardSuperAdmin() {
     const handleToggleFormation = async (f) => {
         try {
             if (f.status === 'published') { await institutionApi.archiveFormation(f.id); toast.success('Archivée.') }
+            else if (f.status === 'archived') { await institutionApi.unarchiveFormation(f.id); toast.success('Désarchivée.') }
             else { await institutionApi.publishFormation(f.id); toast.success('Publiée.') }
             loadFormations()
         } catch (err) { toast.error(err.message || 'Erreur') }
@@ -358,7 +359,7 @@ export default function DashboardSuperAdmin() {
                                                 <TableCell>
                                                     <div className="flex gap-1">
                                                         <Button variant="outline" size="sm" onClick={() => openFormationEdit(f)}>✏️</Button>
-                                                        <Button variant="outline" size="sm" onClick={() => handleToggleFormation(f)} title={f.status === 'published' ? 'Archiver' : 'Publier'}>{f.status === 'published' ? '📦' : '🚀'}</Button>
+                                                        <Button variant="outline" size="sm" onClick={() => handleToggleFormation(f)} title={f.status === 'published' ? 'Archiver' : f.status === 'archived' ? 'Désarchiver' : 'Publier'}>{f.status === 'published' ? '📦' : f.status === 'archived' ? '♻️' : '🚀'}</Button>
                                                         <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => handleDeleteFormation(f.id)}>🗑️</Button>
                                                     </div>
                                                 </TableCell>

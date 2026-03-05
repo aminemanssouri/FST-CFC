@@ -110,8 +110,8 @@ export const institutionApi = {
         req('GET', `/formations/${id}/registration-status`),
 
     // Protected
-    getFormations: () =>
-        req('GET', '/formations'),
+    getFormations: (params = '') =>
+        req('GET', `/formations${params ? '?' + params : ''}`),
 
     createFormation: (data) =>
         req('POST', '/formations', data),
@@ -124,6 +124,9 @@ export const institutionApi = {
 
     archiveFormation: (id) =>
         req('POST', `/formations/${id}/archive`),
+
+    unarchiveFormation: (id) =>
+        req('POST', `/formations/${id}/unarchive`),
 
     deleteFormation: (id) =>
         req('DELETE', `/formations/${id}`),

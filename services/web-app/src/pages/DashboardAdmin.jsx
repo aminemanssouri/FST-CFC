@@ -8,7 +8,7 @@ import { institutionApi, applicationApi, configApi } from '../api'
 
 const roleDisplay = {
     establishment_admin: { label: 'Administrateur d\'Établissement', desc: 'Vous pouvez gérer les formations et les candidatures de votre établissement.' },
-    coordinator: { label: 'Coordinateur', desc: 'Vous pouvez consulter les formations et suivre les candidatures.' },
+    coordinator: { label: 'Coordinateur', desc: 'Vous pouvez gérer les formations, publier, examiner et traiter les candidatures de votre établissement.' },
     super_admin: { label: 'Super Administrateur', desc: 'Accès complet — redirigé vers /super-admin.' },
 }
 
@@ -22,9 +22,9 @@ const etatConfig = {
 }
 
 const formationEtatConfig = {
-    BROUILLON: { label: 'Brouillon', color: 'gray' },
-    PUBLIEE: { label: 'Publiée', color: 'indigo' },
-    ARCHIVEE: { label: 'Archivée', color: 'red' },
+    draft: { label: 'Brouillon', color: 'gray' },
+    published: { label: 'Publiée', color: 'green' },
+    archived: { label: 'Archivée', color: 'red' },
 }
 
 const sidebarItems = [
@@ -49,7 +49,7 @@ export default function DashboardAdmin() {
 
     const loadFormations = () => {
         setLoadingF(true)
-        institutionApi.getFormations()
+        institutionApi.getFormations('status=all')
             .then(data => setFormationsData(data.data || data || []))
             .catch(() => setFormationsData([]))
             .finally(() => setLoadingF(false))
@@ -74,10 +74,30 @@ export default function DashboardAdmin() {
     const handlePublish = async (f) => {
         try {
             await institutionApi.publishFormation(f.id)
-            toast.success(`"${f.titre}" publiée avec succès !`)
+            toast.success(`"${f.title}" publiée avec succès !`)
             loadFormations()
         } catch {
             toast.error('Erreur lors de la publication.')
+        }
+    }
+
+    const handleArchive = async (f) => {
+        try {
+            await institutionApi.archiveFormation(f.id)
+            toast.success(`"${f.title}" archivée avec succès !`)
+            loadFormations()
+        } catch {
+            toast.error('Erreur lors de l\'archivage.')
+        }
+    }
+
+    const handleUnarchive = async (f) => {
+        try {
+            await institutionApi.unarchiveFormation(f.id)
+            toast.success(`"${f.title}" désarchivée avec succès !`)
+            loadFormations()
+        } catch {
+            toast.error('Erreur lors de la désarchivation.')
         }
     }
 
@@ -120,13 +140,13 @@ export default function DashboardAdmin() {
                                     {loadingF ? (
                                         <TableRow><TableCell colSpan={6} className="text-center text-slate-400">Chargement...</TableCell></TableRow>
                                     ) : formationsData.map(f => {
-                                        const etat  = f.etat || f.statut || 'BROUILLON'
-                                        const { label, color } = formationEtatConfig[etat] || { label: etat, color: 'gray' }
-                                        const isInscriptions = f.inscriptions_ouvertes ?? f.inscriptions ?? false
+                                        const status = f.status || 'draft'
+                                        const { label, color } = formationEtatConfig[status] || { label: status, color: 'gray' }
+                                        const isInscriptions = f.inscriptions_ouvertes ?? f.inscriptions ?? (f.registration_period?.status === 'open')
                                         return (
                                             <TableRow key={f.id}>
-                                                <TableCell bold className="text-slate-800">{f.titre || f.title || f.nom}</TableCell>
-                                                <TableCell className="text-slate-600">{f.coordinateur || f.coordinator || '—'}</TableCell>
+                                                <TableCell bold className="text-slate-800">{f.title || f.titre || f.nom}</TableCell>
+                                                <TableCell className="text-slate-600">{f.coordinator || f.coordinateur || '—'}</TableCell>
                                                 <TableCell><Badge color={color}>{label}</Badge></TableCell>
                                                 <TableCell>
                                                     <Badge color={isInscriptions ? 'green' : 'red'} className="text-xs">
@@ -141,7 +161,9 @@ export default function DashboardAdmin() {
                                                 <TableCell>
                                                     <div className="flex gap-2 justify-end">
                                                         <Button variant="subtle" size="sm" onClick={() => { setEditFormation(f); setShowFormationForm(true) }}>Éditer</Button>
-                                                        {etat === 'BROUILLON' && <Button size="sm" variant="accent" onClick={() => handlePublish(f)}>Publier</Button>}
+                                                        {status === 'draft' && <Button size="sm" variant="accent" onClick={() => handlePublish(f)}>Publier</Button>}
+                                                        {status === 'published' && <Button size="sm" variant="subtle" className="text-amber-600 bg-amber-50 hover:bg-amber-100" onClick={() => handleArchive(f)}>Archiver</Button>}
+                                                        {status === 'archived' && <Button size="sm" variant="subtle" className="text-blue-600 bg-blue-50 hover:bg-blue-100" onClick={() => handleUnarchive(f)}>Désarchiver</Button>}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -154,6 +176,7 @@ export default function DashboardAdmin() {
                                     onClose={() => { setShowFormationForm(false); setEditFormation(null) }}
                                     formation={editFormation}
                                     onSaved={loadFormations}
+                                    establishmentId={user?.establishment_id}
                                 />
                             </div>
                         )}
@@ -251,7 +274,7 @@ export default function DashboardAdmin() {
                                     <h3 className="text-lg font-bold text-slate-800 mb-4">Permissions</h3>
                                     <p className="text-sm text-slate-600 mb-4">{(roleDisplay[user?.role] || {}).desc || ''}</p>
                                     <div className="grid grid-cols-2 gap-3">
-                                        {[{ label: 'Voir les formations', ok: true }, { label: 'Créer/éditer des formations', ok: user?.role !== 'coordinator' }, { label: 'Examiner les candidatures', ok: true }, { label: 'Accepter/refuser des candidats', ok: user?.role !== 'coordinator' }, { label: 'Voir les statistiques', ok: true }, { label: 'Gérer les établissements', ok: false }].map((p, i) => (
+                                        {[{ label: 'Voir les formations', ok: true }, { label: 'Créer/éditer des formations', ok: true }, { label: 'Publier/archiver des formations', ok: true }, { label: 'Examiner les candidatures', ok: true }, { label: 'Accepter/refuser des candidats', ok: true }, { label: 'Voir les statistiques', ok: true }, { label: 'Gérer les établissements', ok: false }, { label: 'Gérer les super admins', ok: false }].map((p, i) => (
                                             <div key={i} className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${p.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-400'}`}>
                                                 <span>{p.ok ? '✅' : '❌'}</span>{p.label}
                                             </div>

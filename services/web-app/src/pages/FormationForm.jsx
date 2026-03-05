@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '../components/ui/Toast'
 import { Modal, Input, Select, Button } from '../components/ui'
 import { institutionApi } from '../api'
@@ -10,7 +10,11 @@ const diplomeOptions = [
     { value: 'DU', label: "Diplôme d'Université" },
 ]
 
-export default function FormationForm({ isOpen, onClose, formation = null, onSaved }) {
+/**
+ * @param {number|string} establishmentId  – auto-assigned (admin) or absent (super-admin picks)
+ * @param {Array}          establishments   – list for dropdown when no fixed establishmentId
+ */
+export default function FormationForm({ isOpen, onClose, formation = null, onSaved, establishmentId, establishments = [] }) {
     const toast = useToast()
     const isEdit = !!formation
     const [saving, setSaving] = useState(false)
@@ -22,17 +26,35 @@ export default function FormationForm({ isOpen, onClose, formation = null, onSav
         duree: formation?.duration_hours || formation?.duree || '',
         frais: formation?.price || formation?.frais || '',
         places: formation?.capacity || formation?.places || '',
+        establishment_id: formation?.establishment_id || establishmentId || '',
     })
+
+    useEffect(() => {
+        setForm({
+            titre: formation?.titre || formation?.title || '',
+            description: formation?.description || '',
+            diplome: formation?.diplome || '',
+            duree: formation?.duration_hours || formation?.duree || '',
+            frais: formation?.price || formation?.frais || '',
+            places: formation?.capacity || formation?.places || '',
+            establishment_id: formation?.establishment_id || establishmentId || '',
+        })
+    }, [formation, establishmentId])
 
     const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (!form.establishment_id) {
+            toast.error('Veuillez sélectionner un établissement.')
+            return
+        }
         setSaving(true)
         try {
             const payload = {
                 title: form.titre,
                 description: form.description,
+                establishment_id: Number(form.establishment_id),
                 duration_hours: form.duree ? Number(form.duree) : undefined,
                 price: form.frais ? Number(form.frais) : undefined,
                 capacity: form.places ? Number(form.places) : undefined,
@@ -69,6 +91,22 @@ export default function FormationForm({ isOpen, onClose, formation = null, onSav
                         required
                     />
                 </div>
+
+                {/* Establishment selector – shown only when no fixed establishmentId */}
+                {!establishmentId && establishments.length > 0 && (
+                    <div className="space-y-1.5">
+                        <label className="block text-sm font-semibold text-slate-700">Établissement *</label>
+                        <select
+                            value={form.establishment_id}
+                            onChange={e => update('establishment_id', e.target.value)}
+                            className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg text-sm bg-white transition-all focus:outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-600/10"
+                            required
+                        >
+                            <option value="">— Sélectionner un établissement —</option>
+                            {establishments.map(et => <option key={et.id} value={et.id}>{et.name || et.nom}</option>)}
+                        </select>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Input label="Durée (heures)" type="number" placeholder="300" value={form.duree} onChange={e => update('duree', e.target.value)} />
