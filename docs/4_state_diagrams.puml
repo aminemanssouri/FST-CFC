@@ -1,47 +1,65 @@
 @startuml
-title State Diagrams (Program Service & Application Service)
+title State Diagrams (Institution Service & Application Service)
 
-state "Program Service (Go): Program Lifecycle" as Program {
-  [*] --> Draft : Creation\n(Admin via API Gateway)
+state "Institution Service (Laravel / PHP): Formation Lifecycle" as Formation {
+  [*] --> BROUILLON : Création\n(Admin Établissement)
   
-  state "Draft" as Draft
-  state "Published" as Published {
-    [*] --> Registrations_Closed
-    state "Registrations Open" as Registrations_Open
-    state "Registrations Closed" as Registrations_Closed
-    
-    Registrations_Closed --> Registrations_Open : UpdateRegistrationWindow\n[Role: Coordinator]
-    Registrations_Open --> Registrations_Closed : CloseRegistration\n[Role: Coordinator or Scheduler]
-  }
-  state "Archived" as Archived
-  
-  Draft --> Published : PublishProgram\n[Role: Establishment Admin]
-  Published --> Archived : ArchiveProgram\n[Role: Establishment Admin]
+  state "BROUILLON" as BROUILLON
+  state "PUBLIEE" as PUBLIEE
+  state "ARCHIVEE" as ARCHIVEE
+
+  BROUILLON --> PUBLIEE : publish()\n[Role: Admin Établissement]
+  PUBLIEE --> ARCHIVEE : archive()\n[Role: Admin Établissement]
+
+  note right of PUBLIEE
+    Registration managed via
+    separate RegistrationPeriod model:
+    - is_open (boolean)
+    - start_date / end_date
+    - auto_close (boolean)
+    - max_applications / current_applications
+    Coordinator opens/closes via
+    /registration-period/open | /close
+  end note
 }
 
 --
 
-state "Application Service (Go): Application Lifecycle" as Application {
-  [*] --> PreRegistered : InitApplication\n[Role: Candidate]
+state "Institution Service (Laravel / PHP): Registration Period" as RegPeriod {
+  [*] --> Closed : Création (is_open=false)
   
-  state "Pre-registered" as PreRegistered
-  state "Submitted" as Submitted
-  state "Under Review" as UnderReview
-  state "Accepted" as Accepted
-  state "Refused" as Refused
-  state "Enrolled" as Enrolled
+  state "Closed" as Closed
+  state "Open" as Open
+
+  Closed --> Open : open()\n[Role: Coordinator]\n(sets is_open=TRUE)
+  Open --> Closed : close()\n[Role: Coordinator]
+  Open --> Closed : Scheduler Job\n(end_date < NOW, auto_close=true)
+  Open --> Closed : Capacity Full\n(current_applications >= max_applications)
+}
+
+--
+
+state "Application Service (Gin / Go): Inscription Lifecycle" as Inscription {
+  [*] --> PREINSCRIPTION : CreateInscription\n[Role: Candidat]
   
-  PreRegistered --> Submitted : SubmitApplication\n(Includes upload via Document Service)
-  Submitted --> UnderReview : StartReview\n[Role: Establishment Admin]
+  state "PREINSCRIPTION" as PREINSCRIPTION
+  state "DOSSIER_SOUMIS" as DOSSIER_SOUMIS
+  state "EN_VALIDATION" as EN_VALIDATION
+  state "ACCEPTE" as ACCEPTE
+  state "REFUSE" as REFUSE
+  state "INSCRIT" as INSCRIT
+  
+  PREINSCRIPTION --> DOSSIER_SOUMIS : SubmitDossier\n(Upload via Document Service)
+  DOSSIER_SOUMIS --> EN_VALIDATION : StartReview\n[Role: Admin Établissement]
   
   state AdminChoice <<choice>>
-  UnderReview --> AdminChoice : MakeDecision
-  AdminChoice --> Accepted : Valid application
-  AdminChoice --> Refused : Rejected application
+  EN_VALIDATION --> AdminChoice : MakeDecision
+  AdminChoice --> ACCEPTE : Dossier accepté
+  AdminChoice --> REFUSE : Dossier refusé
   
-  Accepted --> Enrolled : FinalizeEnrollment\n(Payment/Physical drop-off)
+  ACCEPTE --> INSCRIT : FinalizeEnrollment\n(Paiement / Dépôt physique)
   
-  Refused --> [*]
-  Enrolled --> [*]
+  REFUSE --> [*]
+  INSCRIT --> [*]
 }
 @enduml

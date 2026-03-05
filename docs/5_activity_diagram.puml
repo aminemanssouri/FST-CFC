@@ -8,19 +8,27 @@ start
 :Accéder au site CFC;
 :Consulter le catalogue\ndes formations;
 
-|Système|
+|Institution Service (Laravel)|
 :Afficher la liste des formations\npubliées par établissement;
+note right
+  GET /api/catalog
+  Formation::status = PUBLIEE
+  Establishment::is_active = true
+end note
 
 |Candidat|
 :Choisir une formation;
 
-|Système|
+|Institution Service (Laravel)|
 :Vérifier l'éligibilité;
 note right
+  Formation.isRegistrationOpen() :
   - Formation en état PUBLIEE ?
-  - Inscriptions ouvertes ?
+  - RegistrationPeriod.is_open = true ?
   - Date courante dans l'intervalle
-    [date_ouverture, date_fermeture] ?
+    [start_date, end_date] ?
+  - Capacité restante ?
+    (current_applications < max_applications)
 end note
 
 if (Formation éligible ?) then (Non)
@@ -33,40 +41,45 @@ endif
 :Remplir le formulaire\nde préinscription;
 note right
   Informations personnelles :
-  nom, prénom, email,
-  téléphone, diplôme, etc.
+  nom_complet, email,
+  téléphone, notes
 end note
 
 :Préparer les documents\n(diplômes, CV, photos, etc.);
 
-|Document Service|
-:Uploader les fichiers\nvers S3 / MinIO;
+|Document Service (Gin / Go)|
+:Uploader les fichiers\nvers MinIO;
 :Retourner les URLs\ndes documents;
 
 |Candidat|
 :Soumettre le dossier\ncomplet;
 
-|Application Service|
+|Application Service (Gin / Go)|
 :Créer l'inscription\n(état = PREINSCRIPTION);
 :Passer à l'état\nDOSSIER_SOUMIS;
 
-|Système|
-:Envoyer notification\nà l'Admin d'établissement;
+|Notification Service (NestJS)|
+:Envoyer notification\nà l'Admin d'établissement\n(via RabbitMQ + Email);
 
 |Admin Établissement|
 :Recevoir le dossier\nà valider;
 :Examiner le dossier\net les documents;
 
+|Application Service (Gin / Go)|
+:Passer à l'état\nEN_VALIDATION;
+
 if (Décision ?) then (Accepté)
-  |Application Service|
+  |Application Service (Gin / Go)|
   :Mettre à jour l'état\n→ ACCEPTE;
-  |Système|
+  :Enregistrer Decision\n(decide_par, commentaire);
+
+  |Notification Service (NestJS)|
   :Notifier le candidat\n(email : dossier accepté);
 
   |Candidat|
   :Finaliser l'inscription\n(paiement / dépôt physique);
 
-  |Application Service|
+  |Application Service (Gin / Go)|
   :Mettre à jour l'état\n→ INSCRIT;
 
   |Candidat|
@@ -74,9 +87,11 @@ if (Décision ?) then (Accepté)
   stop
 
 else (Refusé)
-  |Application Service|
+  |Application Service (Gin / Go)|
   :Mettre à jour l'état\n→ REFUSE;
-  |Système|
+  :Enregistrer Decision\n(decide_par, commentaire);
+
+  |Notification Service (NestJS)|
   :Notifier le candidat\n(email : dossier refusé);
 
   |Candidat|
@@ -95,17 +110,19 @@ endif
 '
 ' Éléments clés :
 ' 1. Le candidat consulte le catalogue et choisit une formation.
-' 2. Le système vérifie l'éligibilité (formation publiée +
-'    période d'inscription ouverte).
+' 2. L'Institution Service vérifie l'éligibilité (formation PUBLIEE +
+'    RegistrationPeriod ouverte + capacité restante).
 ' 3. Le candidat remplit le formulaire et uploade ses documents
-'    via le Document Service (S3/MinIO).
+'    via le Document Service (MinIO).
 ' 4. L'inscription est créée (état PREINSCRIPTION → DOSSIER_SOUMIS).
-' 5. L'Admin d'établissement examine et accepte ou refuse.
+' 5. L'Admin d'établissement examine, état → EN_VALIDATION,
+'    puis accepte ou refuse.
 ' 6. Si accepté, le candidat finalise (état → INSCRIT).
-' 7. Des notifications sont envoyées à chaque étape clé.
+' 7. Des notifications sont envoyées via le Notification Service
+'    (NestJS + RabbitMQ + Nodemailer) à chaque étape clé.
 '
-' Hypothèses :
-' - Seules les formations PUBLIEE avec inscriptions ouvertes
-'   sont visibles dans le catalogue.
-' - Le coordinateur a déjà configuré les dates d'inscription.
-' - Les swimlanes montrent la responsabilité de chaque acteur/service.
+' Services impliqués :
+' - Institution Service (Laravel / PHP) : catalogue, éligibilité
+' - Document Service (Gin / Go) : upload fichiers vers MinIO
+' - Application Service (Gin / Go) : gestion états inscription
+' - Notification Service (NestJS / Node.js) : emails via RabbitMQ
