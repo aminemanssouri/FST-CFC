@@ -160,7 +160,8 @@ Ce diagramme modélise le **parcours complet du candidat**, depuis la consultati
 | Document Service | Gin + GORM + MinIO SDK | Go 1.23 | PostgreSQL + MinIO |
 | Notification Service | NestJS + Mongoose | Node.js (TypeScript) | MongoDB + RabbitMQ |
 | Scheduler Job | Express | Node.js (TypeScript) | — |
-| Web App | — | — | — |
+
+> **Note :** Le dossier `web-app/` se trouve à la **racine du projet** (`/web-app`), en dehors du dossier `services/`.
 
 ---
 

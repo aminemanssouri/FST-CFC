@@ -2,9 +2,9 @@
 
 > **Projet réalisé par :**
 >
-> - **Amine Mansouri** — Filière DWAM25
-> - **Ismail Bouaichi** — Filière DWAM25
-> - **Younes Raqi** — Filière IACTIC25
+> - **Ismail Bouaichi** — Filière DWAM25 — Services Go (Application Service, Document Service, Program Service) & Web App (React)
+> - **Youness Raqi** — Filière IACTIC25 — Auth Service (Laravel) & API Gateway (Nginx)
+> - **Amine Manssouri** — Filière DWAM25 — Notification Service (NestJS), Scheduler Job (Express), Reporting Analytics (Node.js)
 
 ---
 
@@ -64,15 +64,15 @@ L'architecture repose sur des **microservices** communiquant via une **API Gatew
 
 | Service | Technologie | Port | Base de données | Description |
 |---------|-------------|------|-----------------|-------------|
-| **web-app** | React + Vite + TailwindCSS | 3000 | — | Interface utilisateur SPA |
 | **api-gateway** | Nginx | 3001 | — | Reverse proxy, routage des requêtes |
-| **auth-service** | Laravel (PHP 8.3) | 8001 | PostgreSQL (:5433) | Authentification, gestion des utilisateurs, configurations |
-| **institution-service** | Laravel (PHP 8.3) | 8002 | PostgreSQL (:5434) | Gestion des établissements, formations, périodes d'inscription |
-| **application-service** | Go (Gin) | 3005 | PostgreSQL (:5437) | Gestion des candidatures et machine à états |
-| **document-service** | Go (Gin) | 3006 | PostgreSQL (:5436) + MinIO | Upload et stockage de documents (S3) |
+| **auth-service** | Laravel + Sanctum (PHP 8.2) | 8001 | SQLite | Authentification, gestion des utilisateurs, configurations |
+| **institution-service** | Laravel (PHP 8.2) | 8002 | SQLite | Gestion des établissements, formations, périodes d'inscription |
+| **application-service** | Go (Gin + GORM) | 3005 | PostgreSQL (:5437) | Gestion des candidatures et machine à états |
+| **document-service** | Go (Gin + GORM) | 3006 | PostgreSQL (:5436) + MinIO | Upload et stockage de documents (S3) |
 | **notification-service** | NestJS (TypeScript) | 3007 | MongoDB (:27018) | Envoi d'e-mails via templates, file d'attente RabbitMQ |
 | **reporting-analytics** | Node.js (TypeScript) | 3010 | MongoDB (:27017) | Statistiques et tableaux de bord analytiques |
-| **scheduler-job** | Node.js (TypeScript) | 3020 | — | Tâches planifiées (fermeture automatique des inscriptions) |
+| **scheduler-job** | Express (TypeScript) | 3020 | — | Tâches planifiées (fermeture automatique des inscriptions) |
+| **web-app** | React + Vite + TailwindCSS | 3000 | — | Interface utilisateur SPA (dossier à la racine du projet) |
 
 ### Infrastructure
 
@@ -206,16 +206,16 @@ FST-CFC/
 │   ├── 3_sequence_diagrams.puml    # Diagrammes de séquence
 │   ├── 4_state_diagrams.puml       # Diagrammes d'états
 │   └── 5_activity_diagram.puml     # Diagramme d'activité
+├── web-app/                        # React/Vite — Interface utilisateur (à la racine)
 ├── services/
-│   ├── auth-service/               # Laravel — Authentification & utilisateurs
-│   ├── institution-service/        # Laravel — Établissements & formations
-│   ├── application-service/        # Go — Candidatures & machine à états
-│   ├── document-service/           # Go — Stockage de fichiers (MinIO/S3)
+│   ├── auth-service/               # Laravel (PHP 8.2) — Authentification & utilisateurs
+│   ├── institution-service/        # Laravel (PHP 8.2) — Établissements & formations
+│   ├── application-service/        # Go (Gin + GORM) — Candidatures & machine à états
+│   ├── document-service/           # Go (Gin + GORM) — Stockage de fichiers (MinIO/S3)
 │   ├── notification-service/       # NestJS — E-mails & notifications
 │   ├── reporting-analytics/        # Node.js — Statistiques & analytics
-│   ├── scheduler-job/              # Node.js — Tâches planifiées
-│   ├── gateway/                    # Nginx — API Gateway
-│   └── web-app/                    # React/Vite — Interface utilisateur
+│   ├── scheduler-job/              # Express — Tâches planifiées
+│   └── gateway/                    # Nginx — API Gateway
 ├── libs/                           # Bibliothèques partagées
 ├── infra/                          # Configuration infrastructure
 └── scripts/                        # Scripts utilitaires
@@ -238,7 +238,7 @@ Toutes les requêtes passent par le gateway sur le port **3001** :
 | `/api/establishments/*` | institution-service | Établissements |
 | `/api/catalog` | institution-service | Catalogue public des formations |
 | `/api/stats/*` | institution-service | Statistiques par établissement |
-| `/api/applications/*` | application-service | Candidatures |
+| `/api/inscriptions/*` | application-service | Candidatures |
 | `/api/documents/*` | document-service | Documents (upload/téléchargement) |
 | `/api/notifications/*` | notification-service | Notifications |
 | `/api/analytics/*` | reporting-analytics | Analytiques |
